@@ -1,13 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useParams } from 'next/navigation'
-import { ArrowLeft, Copy, Users, BarChart3, Calendar, TrendingUp, ExternalLink } from 'lucide-react'
+import { getCurrentUser, getSurveyAnalytics } from '@/lib/api/client'
+import { SurveyAnalytics } from '@/types'
 import { format } from 'date-fns'
+import { ArrowLeft, BarChart3, Calendar, Copy, ExternalLink, TrendingUp } from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
-import { getSurveyAnalytics, getCurrentUser } from '@/lib/api/client'
-import { Survey, SurveyAnalytics } from '@/types'
 
 export default function SurveyResults() {
   const router = useRouter()
