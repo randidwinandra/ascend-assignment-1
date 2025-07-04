@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Plus, BarChart3, Users, Clock, TrendingUp, Eye, Copy } from 'lucide-react'
-import { format } from 'date-fns'
-import { toast } from 'react-hot-toast'
 import { getCurrentUser, getSurveys, signOut } from '@/lib/api/client'
-import { Survey, DashboardStats, SurveyListItem } from '@/types'
+import { DashboardStats, SurveyListItem } from '@/types'
+import { format } from 'date-fns'
+import { BarChart3, Clock, Copy, Eye, Plus, TrendingUp, Users } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { toast } from 'react-hot-toast'
 
 export default function AdminDashboard() {
   const router = useRouter()
@@ -35,8 +35,8 @@ export default function AdminDashboard() {
         return
       }
       setUser(currentUser)
-      await loadSurveys(currentUser.id)
-      await loadStats(currentUser.id)
+      await loadSurveys()
+      await loadStats()
     } catch (error) {
       console.error('Error initializing user:', error)
       router.push('/admin/login')
@@ -45,7 +45,7 @@ export default function AdminDashboard() {
     }
   }
 
-  const loadSurveys = async (adminId: string) => {
+  const loadSurveys = async () => {
     try {
       const response = await getSurveys()
       if (response.success && response.data) {
@@ -60,7 +60,7 @@ export default function AdminDashboard() {
     }
   }
 
-  const loadStats = async (adminId: string) => {
+  const loadStats = async () => {
     try {
       const response = await getSurveys()
       if (response.success && response.data) {

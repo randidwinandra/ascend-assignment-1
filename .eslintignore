@@ -1,0 +1,39 @@
+# Supabase folder - contains SQL migrations and Deno Edge Functions
+# These should not be linted with Node.js/Next.js ESLint rules
+supabase/
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+
+# Environment variables
+.env*
+!.env.example
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# Storybook
+storybook-static/
+
+# Temporary files
+*.tmp
+*.temp
+.temp/
+.tmp/ 

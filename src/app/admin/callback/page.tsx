@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { CheckCircle, XCircle, BarChart3 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
+import { BarChart3, CheckCircle, XCircle } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 export default function AuthCallback() {
   const router = useRouter()

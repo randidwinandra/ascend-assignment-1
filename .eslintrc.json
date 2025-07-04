@@ -1,0 +1,18 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "rules": {
+    "@next/next/no-img-element": "off",
+    "react/no-unescaped-entities": "off",
+    "@next/next/no-page-custom-font": "off"
+  },
+  "ignorePatterns": [
+    "supabase/**/*",
+    ".next/**/*",
+    "out/**/*",
+    "dist/**/*",
+    "build/**/*",
+    "node_modules/**/*",
+    "*.config.js",
+    "*.config.ts"
+  ]
+} 

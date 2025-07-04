@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
-import { CheckCircle, BarChart3, Clock, Users } from 'lucide-react'
-import { format } from 'date-fns'
-import { toast } from 'react-hot-toast'
 import { getSurveyByToken, submitSurveyResponse } from '@/lib/api/client'
-import { Survey, SurveyResponseData } from '@/types'
+import { Survey } from '@/types'
+import { format } from 'date-fns'
+import { BarChart3, CheckCircle, Clock, Users } from 'lucide-react'
+import { useParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { toast } from 'react-hot-toast'
 
 export default function PublicSurvey() {
   const params = useParams()

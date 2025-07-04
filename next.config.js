@@ -26,6 +26,11 @@ const nextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
+  // ESLint configuration
+  eslint: {
+    ignoreDuringBuilds: false, // Temporarily ignore ESLint during builds
+    dirs: ['src'], // Only lint the src directory
+  },
   // Bundle analyzer
   ...(process.env.ANALYZE === 'true' && {
     webpack: (config) => {

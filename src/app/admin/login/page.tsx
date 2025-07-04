@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { getCurrentUser, signInWithGoogle } from '@/lib/supabase/client'
+import { BarChart3, LogIn, Shield } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { LogIn, Shield, BarChart3 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
-import { signInWithGoogle, getCurrentUser } from '@/lib/supabase/client'
 
 export default function AdminLogin() {
   const router = useRouter()
