@@ -119,8 +119,9 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 npx supabase db push
 
 # Deploy Edge Functions
-npx supabase functions deploy --no-verify-jwt
-```
+npx supabase functions deploy
+
+# Note: Function-specific JWT verification settings can be configured in /supabase/config.toml
 
 ---
 
@@ -130,7 +131,7 @@ npx supabase functions deploy --no-verify-jwt
 
 | Metric | Target | Measurement Method | Monitoring |
 |--------|--------|-------------------|------------|
-| **Page Load Time** | ≤ 2000ms | Core Web Vitals | Lighthouse CI |
+| **Page Load Time** | ≤ 2000ms | Vercel Analytics | Vercel dashboard |
 | **API Response Time** | ≤ 750ms | Edge Function logs | Supabase metrics |
 | **Database Query Time** | ≤ 200ms | PostgreSQL logs | Query analysis |
 | **Cache Hit Rate** | ≥ 85% | Redis metrics | Upstash dashboard |
@@ -138,17 +139,7 @@ npx supabase functions deploy --no-verify-jwt
 
 ### Monitoring Setup
 
-#### 1. Frontend Monitoring
-```javascript
-// Add to _app.tsx
-export function reportWebVitals(metric) {
-  if (metric.label === 'web-vital') {
-    console.log(metric)
-  }
-}
-```
-
-#### 2. Load Testing
+#### 1. Load Testing
 ```bash
 # Run load tests
 npm run test:load
@@ -157,16 +148,16 @@ npm run test:load
 npm run test:load-simple
 ```
 
-#### 3. Performance Benchmarks
+#### 2. Performance Benchmarks
 - **k6 Load Testing**: 100 concurrent users, 6-minute test
-- **Lighthouse Score**: Target 90+ on all metrics
+- **Vercel Analytics**: Page load and Core Web Vitals tracked in Vercel dashboard
 - **Database Performance**: Query execution plans monitored
 
 ### Measurement Tools
 
 | Tool | Purpose | Frequency | Threshold |
 |------|---------|-----------|-----------|
-| **Lighthouse CI** | Core Web Vitals | Every deployment | Score > 90 |
+| **Vercel Analytics** | Page load/Core Web Vitals | Every deployment | ≤ 2000ms |
 | **k6** | Load testing | Weekly | p95 < 2s |
 | **Upstash Metrics** | Cache performance | Continuous | Hit rate > 85% |
 | **Supabase Metrics** | Database performance | Continuous | Query time < 200ms |
@@ -227,12 +218,42 @@ Based on current usage patterns:
 
 ### Deployment Pipeline
 
+### CI/CD Pipeline
+
+Our deployment pipeline is automated through GitHub Actions with comprehensive testing and validation:
+
+#### Automated Testing (`.github/workflows/test.yml`)
+- **Trigger**: Pull requests and pushes to master
+- **TypeScript**: Static type checking
+- **ESLint**: Code quality and style enforcement  
+- **Unit Tests**: Jest test suite with coverage reporting
+- **Edge Function Tests**: Isolated testing of Supabase functions
+
+#### Deployment Pipeline (`.github/workflows/deploy-supabase.yml`)
+- **Validation Phase**: 
+  - Migration file validation
+  - Function directory verification
+  - Pre-deployment checks
+- **Deployment Phase**:
+  - Database migrations via `supabase db push`
+  - Edge function deployment via `supabase functions deploy`
+  - Post-deployment verification
+
+#### Environment Management
+- **Production**: Automated deployment on master branch
+- **Staging**: Manual deployment via workflow dispatch
+- **Secrets**: Secure environment variable management
+
+For detailed CI/CD setup instructions, see [`/docs/DEPLOYMENT_SETUP.md`](./docs/DEPLOYMENT_SETUP.md).
+
+### Manual Deployment Commands
+
 ```bash
 # 1. Run tests
 npm run test && npm run test:functions
 
 # 2. Deploy Edge Functions
-npx supabase functions deploy --no-verify-jwt
+npx supabase functions deploy
 
 # 3. Deploy frontend
 vercel --prod

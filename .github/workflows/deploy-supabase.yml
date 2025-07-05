@@ -19,16 +19,16 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '22'
+        node-version: '22.x'
         cache: 'npm'
 
     - name: Install dependencies
       run: npm ci
 
     - name: Install Supabase CLI
-      run: |
-        curl -fsSL https://supabase.com/install.sh | sh
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
+      uses: supabase/setup-cli@v1
+      with:
+        version: latest
 
     - name: Verify Supabase CLI installation
       run: supabase --version
@@ -71,16 +71,16 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '22.x'
         cache: 'npm'
 
     - name: Install dependencies
       run: npm ci
 
     - name: Install Supabase CLI
-      run: |
-        curl -fsSL https://supabase.com/install.sh | sh
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
+      uses: supabase/setup-cli@v1
+      with:
+        version: latest
 
     - name: Verify Supabase CLI installation
       run: supabase --version
