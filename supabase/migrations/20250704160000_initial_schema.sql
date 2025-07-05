@@ -386,3 +386,4 @@ COMMENT ON COLUMN surveys.public_token IS 'Unique token for public survey access
 COMMENT ON COLUMN surveys.max_votes IS 'Maximum number of responses allowed (default: 100 as per task constrains)';
 COMMENT ON COLUMN surveys.expires_at IS 'Survey expiration date (default: 3 days from creation date as per task constrains)';
 COMMENT ON COLUMN responses.submission_id IS 'Groups all responses from a single survey submission';
+

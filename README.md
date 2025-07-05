@@ -152,7 +152,39 @@
 ### Deployment
 - **Vercel** for frontend hosting
 - **Supabase** for backend services
-- **GitHub Actions** for CI/CD
+- **GitHub Actions** for automated CI/CD deployment
+
+## Deployment
+
+### Automated CI/CD with GitHub Actions
+
+The project includes a comprehensive GitHub Actions workflow for automated deployment:
+
+#### 🚀 **Automatic Deployment Triggers**
+- **Production**: Push to `main` or `master` branch
+- **Validation**: Pull requests (validates migrations and functions)
+- **Manual**: Workflow dispatch from GitHub Actions tab
+
+#### 📋 **Deployment Process**
+1. **Database Migrations**: Automatically applies schema changes
+2. **Edge Functions**: Deploys all serverless functions
+3. **Validation**: Checks deployment status and health
+4. **Notifications**: Provides deployment summary and status
+
+#### 🔧 **Setup Instructions**
+See [DEPLOYMENT_SETUP.md](./DEPLOYMENT_SETUP.md) for detailed setup instructions including:
+- Required GitHub secrets configuration
+- Supabase project linking
+- Troubleshooting common issues
+
+#### 🛠️ **Manual Deployment**
+```bash
+# Deploy migrations
+npx supabase db push
+
+# Deploy functions
+npx supabase functions deploy --no-verify-jwt
+```
 
 ## API Endpoints
 

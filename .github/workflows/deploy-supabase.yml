@@ -1,0 +1,137 @@
+name: Deploy Stream Flash Survey
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Supabase CLI
+      run: |
+        curl -fsSL https://supabase.com/install.sh | sh
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Verify Supabase CLI installation
+      run: supabase --version
+
+    - name: Validate migrations
+      run: |
+        echo "🔍 Validating Supabase migrations..."
+        # Check if migrations directory exists and has files
+        if [ ! -d "supabase/migrations" ]; then
+          echo "❌ No migrations directory found"
+          exit 1
+        fi
+        
+        # List migration files
+        echo "📋 Migration files found:"
+        ls -la supabase/migrations/
+        
+        # Check if functions directory exists
+        if [ ! -d "supabase/functions" ]; then
+          echo "❌ No functions directory found"
+          exit 1
+        fi
+        
+        # List function files
+        echo "📋 Function directories found:"
+        ls -la supabase/functions/
+        
+        echo "✅ Validation completed successfully"
+
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Supabase CLI
+      run: |
+        curl -fsSL https://supabase.com/install.sh | sh
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Verify Supabase CLI installation
+      run: supabase --version
+
+    - name: Link Supabase project
+      run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+      env:
+        SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+    - name: Check migration status
+      run: |
+        echo "🔍 Checking current migration status..."
+        supabase migration list
+      env:
+        SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+    - name: Run database migrations
+      run: |
+        echo "🚀 Running database migrations..."
+        supabase db push
+        echo "✅ Database migrations completed"
+      env:
+        SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+    - name: Deploy Edge Functions
+      run: |
+        echo "🚀 Deploying Edge Functions..."
+        supabase functions deploy --no-verify-jwt
+        echo "✅ Edge Functions deployed"
+      env:
+        SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+    - name: Verify deployment
+      run: |
+        echo "🔍 Verifying deployment..."
+        supabase functions list
+        echo ""
+        echo "✅ Migrations completed successfully"
+        echo "✅ Edge Functions deployed successfully"
+        echo "🚀 Deployment completed!"
+      env:
+        SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+    - name: Post deployment summary
+      run: |
+        echo "## 🎉 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Database migrations applied" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Edge Functions deployed" >> $GITHUB_STEP_SUMMARY
+        echo "- 🚀 Project successfully updated!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Project**: ${{ secrets.SUPABASE_PROJECT_REF }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY 

@@ -121,26 +121,7 @@ export default function AdminLogin() {
                   <div className="w-full border-t border-gray-300" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Dashboard Features</span>
-                </div>
-              </div>
-              
-              <div className="mt-4 space-y-3">
-                <div className="flex items-center text-sm text-gray-600">
-                  <div className="w-2 h-2 bg-survey-400 rounded-full mr-3"></div>
-                  Create and manage flash surveys
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <div className="w-2 h-2 bg-survey-400 rounded-full mr-3"></div>
-                  Real-time analytics and responses
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <div className="w-2 h-2 bg-survey-400 rounded-full mr-3"></div>
-                  Public link generation and sharing
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <div className="w-2 h-2 bg-survey-400 rounded-full mr-3"></div>
-                  Performance monitoring and limits
+                  <span className="px-2 bg-white text-gray-500">For Ascend Test Assignment Only</span>
                 </div>
               </div>
             </div>
@@ -153,7 +134,7 @@ export default function AdminLogin() {
             Protected by Google OAuth 2.0 • Powered by Supabase
           </p>
           <p className="mt-2 text-xs text-gray-400">
-            Having trouble signing in? Contact your system administrator.
+            - Randi Dwi Nandra -
           </p>
         </div>
       </div>

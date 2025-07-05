@@ -82,41 +82,27 @@ serve(async (req) => {
       )
     }
 
-    // Start transaction
+    // Get admin user (must exist from login trigger)
     const { data: adminUser, error: adminError } = await supabase
       .from('admin_users')
       .select('id')
-      .eq('email', user.email)
+      .eq('id', user.id)
       .single()
 
-    if (adminError) {
-      // Create admin user if doesn't exist
-      const { data: newAdminUser, error: createAdminError } = await supabase
-        .from('admin_users')
-        .insert({
-          email: user.email!,
-          name: user.user_metadata?.full_name || user.email!,
-          avatar_url: user.user_metadata?.avatar_url
-        })
-        .select('id')
-        .single()
-
-      if (createAdminError) {
-        return new Response(
-          JSON.stringify({ error: 'Failed to create admin user' }),
-          { 
-            status: 500, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        )
-      }
+    if (!adminUser) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Admin user not found. Please logout and login again to create your admin profile.', 
+          details: adminError?.message 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
-    const adminId = adminUser?.id || (await supabase
-      .from('admin_users')
-      .select('id')
-      .eq('email', user.email)
-      .single()).data?.id
+    const adminId = adminUser.id
 
     // Generate public token
     const publicToken = crypto.randomUUID()
