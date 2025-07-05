@@ -17,7 +17,7 @@ export default function CreateSurvey() {
       {
         question_text: '',
         question_type: 'radio',
-        options: ['Yes', 'No'],
+        options: ['Option 1', 'Option 2'],
         required: true
       }
     ]
@@ -36,7 +36,7 @@ export default function CreateSurvey() {
         {
           question_text: '',
           question_type: 'radio',
-          options: ['Yes', 'No'],
+          options: ['Option 1', 'Option 2'],
           required: true
         }
       ]
@@ -64,6 +64,39 @@ export default function CreateSurvey() {
     }))
   }
 
+  const handleAddOption = (questionIndex: number) => {
+    setFormData(prev => ({
+      ...prev,
+      questions: prev.questions.map((q, i) => 
+        i === questionIndex ? { ...q, options: [...q.options, ''] } : q
+      )
+    }))
+  }
+
+  const handleRemoveOption = (questionIndex: number, optionIndex: number) => {
+    setFormData(prev => ({
+      ...prev,
+      questions: prev.questions.map((q, i) => 
+        i === questionIndex ? { 
+          ...q, 
+          options: q.options.filter((_, oi) => oi !== optionIndex)
+        } : q
+      )
+    }))
+  }
+
+  const handleOptionChange = (questionIndex: number, optionIndex: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      questions: prev.questions.map((q, i) => 
+        i === questionIndex ? { 
+          ...q, 
+          options: q.options.map((opt, oi) => oi === optionIndex ? value : opt)
+        } : q
+      )
+    }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -74,6 +107,16 @@ export default function CreateSurvey() {
 
     if (formData.questions.some(q => !q.question_text.trim())) {
       toast.error('All questions must have text')
+      return
+    }
+
+    if (formData.questions.some(q => q.question_type === 'radio' && q.options.length < 2)) {
+      toast.error('All radio button questions must have at least 2 options')
+      return
+    }
+
+    if (formData.questions.some(q => q.options.some(opt => !opt.trim()))) {
+      toast.error('All options must have text')
       return
     }
 
@@ -94,7 +137,7 @@ export default function CreateSurvey() {
         ...(formData.description && { description: formData.description }),
         questions: formData.questions.map((q, index) => ({
           question_text: q.question_text,
-          options: q.options,
+          options: q.options.filter(opt => opt.trim()).map(opt => opt.trim()),
           required: q.required,
           order_index: index
         }))
@@ -266,7 +309,16 @@ export default function CreateSurvey() {
                       </label>
                       <select
                         value={question.question_type}
-                        onChange={(e) => handleQuestionChange(index, 'question_type', e.target.value as 'yes_no' | 'radio')}
+                        onChange={(e) => {
+                          const newType = e.target.value as 'yes_no' | 'radio'
+                          handleQuestionChange(index, 'question_type', newType)
+                          // Auto-set options based on question type
+                          if (newType === 'yes_no') {
+                            handleQuestionChange(index, 'options', ['Yes', 'No'])
+                          } else if (newType === 'radio' && question.question_type === 'yes_no') {
+                            handleQuestionChange(index, 'options', ['Option 1', 'Option 2'])
+                          }
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-survey-500 focus:border-survey-500"
                       >
                         <option value="yes_no">Yes/No</option>
@@ -274,18 +326,56 @@ export default function CreateSurvey() {
                       </select>
                     </div>
 
-                    {question.question_type === 'radio' && (
+                    {(question.question_type === 'radio' || question.question_type === 'yes_no') && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Options (comma-separated)
-                        </label>
-                        <input
-                          type="text"
-                          value={question.options.join(', ')}
-                          onChange={(e) => handleQuestionChange(index, 'options', e.target.value.split(', ').filter(o => o.trim()))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-survey-500 focus:border-survey-500"
-                          placeholder="Option 1, Option 2, Option 3"
-                        />
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Options
+                          </label>
+                          {question.question_type === 'radio' && (
+                            <button
+                              type="button"
+                              onClick={() => handleAddOption(index)}
+                              className="flex items-center px-2 py-1 text-xs font-medium text-survey-600 bg-survey-50 hover:bg-survey-100 rounded-md"
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add Option
+                            </button>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          {question.options.map((option, optionIndex) => (
+                            <div key={optionIndex} className="flex items-center space-x-2">
+                              <input
+                                type="text"
+                                value={option}
+                                onChange={(e) => handleOptionChange(index, optionIndex, e.target.value)}
+                                className={`flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-survey-500 focus:border-survey-500 ${
+                                  question.question_type === 'yes_no' ? 'bg-gray-50 cursor-not-allowed' : ''
+                                }`}
+                                placeholder={`Option ${optionIndex + 1}`}
+                                disabled={question.question_type === 'yes_no'}
+                                readOnly={question.question_type === 'yes_no'}
+                              />
+                              {question.question_type === 'radio' && question.options.length > 2 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveOption(index, optionIndex)}
+                                  className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md"
+                                  title="Remove option"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        {question.question_type === 'radio' && question.options.length < 2 && (
+                          <p className="text-xs text-red-500 mt-1">At least 2 options are required</p>
+                        )}
+                        {question.question_type === 'yes_no' && (
+                          <p className="text-xs text-gray-500 mt-1">Yes/No questions use fixed options</p>
+                        )}
                       </div>
                     )}
 

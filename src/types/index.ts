@@ -72,7 +72,7 @@ export interface SurveyFormData {
 
 export interface QuestionFormData {
   question_text: string
-  question_type: 'radio'
+  question_type: 'radio' | 'yes_no'
   options: string[]
   required: boolean
   order_index?: number
