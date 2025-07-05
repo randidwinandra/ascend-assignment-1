@@ -1,11 +1,11 @@
 'use client'
 
+import { Alert, BrandHeader, Button, LoadingPage } from '@/components/ui'
 import { getCurrentUser, signInWithGoogle } from '@/lib/supabase/client'
-import { LogIn, Shield } from 'lucide-react'
+import { LogIn } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
-import { LoadingPage, Alert, BrandHeader, Button } from '@/components/ui'
 
 export default function AdminLogin() {
   const router = useRouter()

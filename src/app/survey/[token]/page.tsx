@@ -20,10 +20,10 @@ export default function PublicSurvey() {
   const [responses, setResponses] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    if (params.token) {
+    if (params?.token) {
       loadSurvey(params.token as string)
     }
-  }, [params.token])
+  }, [params?.token])
 
   const loadSurvey = async (token: string) => {
     try {
@@ -73,7 +73,7 @@ export default function PublicSurvey() {
     
     try {
       const responseData = {
-        survey_token: params.token as string,
+        survey_token: params?.token as string,
         responses: Object.entries(responses).map(([question_id, option_id]) => ({
           question_id,
           option_id

@@ -17,10 +17,10 @@ export default function SurveyResults() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (params.id) {
+    if (params?.id) {
       loadSurveyData(params.id as string)
     }
-  }, [params.id])
+  }, [params?.id])
 
   const loadSurveyData = async (surveyId: string) => {
     try {
@@ -142,7 +142,7 @@ export default function SurveyResults() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <StatsCard
             title="Total Responses"
-            value={totalResponses}
+            value={`${totalResponses} / ${survey.max_votes}`}
             icon={Users}
           />
           <StatsCard
