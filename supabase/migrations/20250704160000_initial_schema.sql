@@ -5,7 +5,7 @@
 -- ============================================================================
 
 -- Admin Users Table
-CREATE TABLE admin_users (
+CREATE TABLE IF NOT EXISTS admin_users (
   id UUID PRIMARY KEY DEFAULT auth.uid(),
   email TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE admin_users (
 );
 
 -- Surveys Table
-CREATE TABLE surveys (
+CREATE TABLE IF NOT EXISTS surveys (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
   description TEXT,
@@ -31,7 +31,7 @@ CREATE TABLE surveys (
 );
 
 -- Questions Table
-CREATE TABLE questions (
+CREATE TABLE IF NOT EXISTS questions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   survey_id UUID NOT NULL,
   question_text TEXT NOT NULL,
@@ -45,7 +45,7 @@ CREATE TABLE questions (
 );
 
 -- Question Options Table
-CREATE TABLE question_options (
+CREATE TABLE IF NOT EXISTS question_options (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   question_id UUID NOT NULL,
   option_text TEXT NOT NULL,
@@ -55,7 +55,7 @@ CREATE TABLE question_options (
 );
 
 -- Responses Table
-CREATE TABLE responses (
+CREATE TABLE IF NOT EXISTS responses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   survey_id UUID NOT NULL,
   question_id UUID NOT NULL,
@@ -72,28 +72,28 @@ CREATE TABLE responses (
 -- ============================================================================
 
 -- Admin Users indexes
-CREATE INDEX idx_admin_users_email ON admin_users (email);
+CREATE INDEX IF NOT EXISTS idx_admin_users_email ON admin_users (email);
 
 -- Surveys indexes
-CREATE INDEX idx_surveys_admin_id ON surveys (admin_id);
-CREATE INDEX idx_surveys_public_token ON surveys (public_token);
-CREATE INDEX idx_surveys_active_unexpired ON surveys (is_active, expires_at) WHERE is_active = true;
-CREATE INDEX idx_surveys_created_at ON surveys (created_at);
+CREATE INDEX IF NOT EXISTS idx_surveys_admin_id ON surveys (admin_id);
+CREATE INDEX IF NOT EXISTS idx_surveys_public_token ON surveys (public_token);
+CREATE INDEX IF NOT EXISTS idx_surveys_active_unexpired ON surveys (is_active, expires_at) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_surveys_created_at ON surveys (created_at);
 
 -- Questions indexes
-CREATE INDEX idx_questions_survey_id ON questions (survey_id);
-CREATE INDEX idx_questions_survey_order ON questions (survey_id, order_index);
+CREATE INDEX IF NOT EXISTS idx_questions_survey_id ON questions (survey_id);
+CREATE INDEX IF NOT EXISTS idx_questions_survey_order ON questions (survey_id, order_index);
 
 -- Question Options indexes
-CREATE INDEX idx_question_options_question_id ON question_options (question_id);
+CREATE INDEX IF NOT EXISTS idx_question_options_question_id ON question_options (question_id);
 
 -- Responses indexes
-CREATE INDEX idx_responses_survey_id ON responses (survey_id);
-CREATE INDEX idx_responses_question_id ON responses (question_id);
-CREATE INDEX idx_responses_option_id ON responses (option_id);
-CREATE INDEX idx_responses_submission_id ON responses (submission_id);
-CREATE INDEX idx_responses_survey_submission ON responses (survey_id, submission_id);
-CREATE INDEX idx_responses_submitted_at ON responses (submitted_at);
+CREATE INDEX IF NOT EXISTS idx_responses_survey_id ON responses (survey_id);
+CREATE INDEX IF NOT EXISTS idx_responses_question_id ON responses (question_id);
+CREATE INDEX IF NOT EXISTS idx_responses_option_id ON responses (option_id);
+CREATE INDEX IF NOT EXISTS idx_responses_submission_id ON responses (submission_id);
+CREATE INDEX IF NOT EXISTS idx_responses_survey_submission ON responses (survey_id, submission_id);
+CREATE INDEX IF NOT EXISTS idx_responses_submitted_at ON responses (submitted_at);
 
 -- ============================================================================
 -- Triggers for Updated At
@@ -109,18 +109,22 @@ END;
 $$ language 'plpgsql';
 
 -- Apply triggers to all tables with updated_at
+DROP TRIGGER IF EXISTS update_admin_users_updated_at ON admin_users;
 CREATE TRIGGER update_admin_users_updated_at
   BEFORE UPDATE ON admin_users
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_surveys_updated_at ON surveys;
 CREATE TRIGGER update_surveys_updated_at
   BEFORE UPDATE ON surveys
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_questions_updated_at ON questions;
 CREATE TRIGGER update_questions_updated_at
   BEFORE UPDATE ON questions
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_question_options_updated_at ON question_options;
 CREATE TRIGGER update_question_options_updated_at
   BEFORE UPDATE ON question_options
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
