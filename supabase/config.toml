@@ -269,6 +269,28 @@ inspector_port = 8083
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
 # entrypoint = "./functions/MY_FUNCTION_NAME/index.ts"
 
+# Public endpoints - no JWT verification required
+[functions.get-survey-by-token]
+enabled = true
+verify_jwt = false
+
+[functions.submit-response]
+enabled = true
+verify_jwt = false
+
+# Admin endpoints - require JWT verification
+[functions.create-survey]
+enabled = true
+verify_jwt = true
+
+[functions.get-surveys]
+enabled = true
+verify_jwt = true
+
+[functions.get-survey-analytics]
+enabled = true
+verify_jwt = true
+
 [analytics]
 enabled = true
 port = 54327

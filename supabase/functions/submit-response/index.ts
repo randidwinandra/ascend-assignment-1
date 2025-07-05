@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0"
 import { corsHeaders } from "../_shared/cors.ts"
+import { checkSurveyVoteLimit, recordVote, getClientIP } from "../_shared/redis.ts"
 
 interface SubmitResponseRequest {
   survey_token: string
@@ -11,13 +12,12 @@ interface SubmitResponseRequest {
 }
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Parse request body
+    const clientIP = getClientIP(req)
     const { survey_token, responses }: SubmitResponseRequest = await req.json()
 
     if (!survey_token || !responses || responses.length === 0) {
@@ -30,13 +30,11 @@ serve(async (req) => {
       )
     }
 
-    // Create Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     )
 
-    // Get survey to validate
     const { data: survey, error: surveyError } = await supabase
       .from('surveys')
       .select(`
@@ -66,7 +64,6 @@ serve(async (req) => {
       )
     }
 
-    // Check if survey is active and not expired
     if (!survey.is_active || new Date(survey.expires_at) <= new Date()) {
       return new Response(
         JSON.stringify({ error: 'Survey is no longer active' }),
@@ -77,7 +74,39 @@ serve(async (req) => {
       )
     }
 
-    // Check if survey has reached max votes by counting distinct submissions
+    const rateLimit = await checkSurveyVoteLimit(survey.id, clientIP)
+    if (!rateLimit.allowed) {
+      let errorMessage = 'Rate limit exceeded'
+      let retryAfter: number | undefined = 3600
+      
+      if (rateLimit.reason === 'IP already voted') {
+        errorMessage = 'You have already submitted a response to this survey. Each person can only vote once per survey.'
+        retryAfter = undefined
+      } else if (rateLimit.reason === 'Survey vote limit reached') {
+        errorMessage = 'This survey has reached its maximum number of responses and is no longer accepting new submissions.'
+        retryAfter = undefined
+      }
+      
+      const responseData: any = { error: errorMessage }
+      if (retryAfter !== undefined) {
+        responseData.retry_after = retryAfter
+      }
+      
+      return new Response(
+        JSON.stringify(responseData),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'X-RateLimit-Limit': '1',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': retryAfter ? new Date(Date.now() + retryAfter * 1000).toISOString() : ''
+          }
+        }
+      )
+    }
+
     const { data: submissionData, error: countError } = await supabase
       .from('responses')
       .select('submission_id')
@@ -85,7 +114,6 @@ serve(async (req) => {
 
     if (countError) {
       console.error('Error counting submissions:', countError)
-      // Continue anyway, don't block submission
     }
 
     const uniqueSubmissions = submissionData ? 
@@ -101,7 +129,6 @@ serve(async (req) => {
       )
     }
 
-    // Validate responses
     const requiredQuestions = survey.questions.filter((q: any) => q.required)
     const providedQuestionIds = responses.map(r => r.question_id)
     const missingRequired = requiredQuestions.filter((q: any) => 
@@ -118,7 +145,6 @@ serve(async (req) => {
       )
     }
 
-    // Validate option IDs exist for their questions
     for (const response of responses) {
       const question = survey.questions.find((q: any) => q.id === response.question_id)
       if (!question) {
@@ -143,10 +169,7 @@ serve(async (req) => {
       }
     }
 
-    // Generate a single submission_id for all responses in this survey submission
     const submissionId = crypto.randomUUID()
-
-    // Insert responses with the same submission_id
     const responseInserts = responses.map(response => ({
       survey_id: survey.id,
       question_id: response.question_id,
@@ -159,9 +182,8 @@ serve(async (req) => {
       .insert(responseInserts)
 
     if (insertError) {
-      console.error('Error inserting responses:', insertError)
       return new Response(
-        JSON.stringify({ error: 'Failed to save responses' }),
+        JSON.stringify({ error: 'Failed to record responses' }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -169,22 +191,26 @@ serve(async (req) => {
       )
     }
 
-    // Note: We no longer update total_votes in surveys table
-    // Instead, we count distinct submission_ids from responses table
+    try {
+      await recordVote(survey.id, clientIP, responseInserts)
+    } catch (redisError) {
+      console.warn('Redis recording failed:', redisError)
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Response submitted successfully'
+        message: 'Responses recorded successfully',
+        submission_id: submissionId
       }),
       { 
-        status: 201,
+        status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
 
   } catch (error) {
-    console.error('Error submitting response:', error)
+    console.error('Error processing survey response:', error)
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { 

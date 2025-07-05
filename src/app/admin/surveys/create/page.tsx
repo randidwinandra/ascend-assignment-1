@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, Trash2, Save, BarChart3 } from 'lucide-react'
+import { Plus, Trash2, Save, BarChart3 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { createSurvey, getCurrentUser } from '@/lib/api/client'
 import { SurveyFormData, QuestionFormData, CreateSurveyRequest } from '@/types'
+import { PageHeader, Button, Alert } from '@/components/ui'
 
 export default function CreateSurvey() {
   const router = useRouter()
@@ -17,7 +18,7 @@ export default function CreateSurvey() {
       {
         question_text: '',
         question_type: 'radio',
-        options: ['Yes', 'No'],
+        options: ['Option 1', 'Option 2'],
         required: true
       }
     ]
@@ -36,7 +37,7 @@ export default function CreateSurvey() {
         {
           question_text: '',
           question_type: 'radio',
-          options: ['Yes', 'No'],
+          options: ['Option 1', 'Option 2'],
           required: true
         }
       ]
@@ -64,6 +65,39 @@ export default function CreateSurvey() {
     }))
   }
 
+  const handleAddOption = (questionIndex: number) => {
+    setFormData(prev => ({
+      ...prev,
+      questions: prev.questions.map((q, i) => 
+        i === questionIndex ? { ...q, options: [...q.options, ''] } : q
+      )
+    }))
+  }
+
+  const handleRemoveOption = (questionIndex: number, optionIndex: number) => {
+    setFormData(prev => ({
+      ...prev,
+      questions: prev.questions.map((q, i) => 
+        i === questionIndex ? { 
+          ...q, 
+          options: q.options.filter((_, oi) => oi !== optionIndex)
+        } : q
+      )
+    }))
+  }
+
+  const handleOptionChange = (questionIndex: number, optionIndex: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      questions: prev.questions.map((q, i) => 
+        i === questionIndex ? { 
+          ...q, 
+          options: q.options.map((opt, oi) => oi === optionIndex ? value : opt)
+        } : q
+      )
+    }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -77,6 +111,16 @@ export default function CreateSurvey() {
       return
     }
 
+    if (formData.questions.some(q => q.question_type === 'radio' && q.options.length < 2)) {
+      toast.error('All radio button questions must have at least 2 options')
+      return
+    }
+
+    if (formData.questions.some(q => q.options.some(opt => !opt.trim()))) {
+      toast.error('All options must have text')
+      return
+    }
+
     setLoading(true)
     
     try {
@@ -86,15 +130,12 @@ export default function CreateSurvey() {
         return
       }
 
-      const expiresAt = new Date()
-      expiresAt.setDate(expiresAt.getDate() + 3) // 3 days from now
-
       const surveyData: CreateSurveyRequest = {
         title: formData.title,
         ...(formData.description && { description: formData.description }),
         questions: formData.questions.map((q, index) => ({
           question_text: q.question_text,
-          options: q.options,
+          options: q.options.filter(opt => opt.trim()).map(opt => opt.trim()),
           required: q.required,
           order_index: index
         }))
@@ -118,31 +159,15 @@ export default function CreateSurvey() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => router.push('/admin')}
-                className="flex items-center text-gray-600 hover:text-gray-900"
-              >
-                <ArrowLeft className="h-5 w-5 mr-2" />
-                Back to Dashboard
-              </button>
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-survey-600 rounded-lg">
-                  <BarChart3 className="h-5 w-5 text-white" />
-                </div>
-                <h1 className="text-xl font-semibold text-gray-900">Create New Survey</h1>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        title="Create New Survey"
+        icon={BarChart3}
+        showBackButton
+        onBackClick={() => router.push('/admin')}
+      />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Survey Details */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Survey Details</h2>
             
@@ -214,19 +239,19 @@ export default function CreateSurvey() {
             </div>
           </div>
 
-          {/* Questions */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium text-gray-900">Questions</h2>
-              <button
+              <Button
                 type="button"
                 onClick={handleAddQuestion}
                 disabled={formData.questions.length >= 3}
-                className="flex items-center px-3 py-2 text-sm font-medium text-survey-600 bg-survey-50 hover:bg-survey-100 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                variant="secondary"
+                size="sm"
+                icon={Plus}
               >
-                <Plus className="h-4 w-4 mr-1" />
                 Add Question
-              </button>
+              </Button>
             </div>
 
             <div className="space-y-4">
@@ -235,13 +260,13 @@ export default function CreateSurvey() {
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-medium text-gray-900">Question {index + 1}</h3>
                     {formData.questions.length > 1 && (
-                      <button
+                      <Button
                         type="button"
                         onClick={() => handleRemoveQuestion(index)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                        variant="ghost"
+                        size="sm"
+                        icon={Trash2}
+                      />
                     )}
                   </div>
 
@@ -266,7 +291,15 @@ export default function CreateSurvey() {
                       </label>
                       <select
                         value={question.question_type}
-                        onChange={(e) => handleQuestionChange(index, 'question_type', e.target.value as 'yes_no' | 'radio')}
+                        onChange={(e) => {
+                          const newType = e.target.value as 'yes_no' | 'radio'
+                          handleQuestionChange(index, 'question_type', newType)
+                          if (newType === 'yes_no') {
+                            handleQuestionChange(index, 'options', ['Yes', 'No'])
+                          } else if (newType === 'radio' && question.question_type === 'yes_no') {
+                            handleQuestionChange(index, 'options', ['Option 1', 'Option 2'])
+                          }
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-survey-500 focus:border-survey-500"
                       >
                         <option value="yes_no">Yes/No</option>
@@ -274,18 +307,58 @@ export default function CreateSurvey() {
                       </select>
                     </div>
 
-                    {question.question_type === 'radio' && (
+                    {(question.question_type === 'radio' || question.question_type === 'yes_no') && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Options (comma-separated)
-                        </label>
-                        <input
-                          type="text"
-                          value={question.options.join(', ')}
-                          onChange={(e) => handleQuestionChange(index, 'options', e.target.value.split(', ').filter(o => o.trim()))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-survey-500 focus:border-survey-500"
-                          placeholder="Option 1, Option 2, Option 3"
-                        />
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Options
+                          </label>
+                          {question.question_type === 'radio' && (
+                            <Button
+                              type="button"
+                              onClick={() => handleAddOption(index)}
+                              variant="ghost"
+                              size="sm"
+                              icon={Plus}
+                            >
+                              Add Option
+                            </Button>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          {question.options.map((option, optionIndex) => (
+                            <div key={optionIndex} className="flex items-center space-x-2">
+                              <input
+                                type="text"
+                                value={option}
+                                onChange={(e) => handleOptionChange(index, optionIndex, e.target.value)}
+                                className={`flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-survey-500 focus:border-survey-500 ${
+                                  question.question_type === 'yes_no' ? 'bg-gray-50 cursor-not-allowed' : ''
+                                }`}
+                                placeholder={`Option ${optionIndex + 1}`}
+                                disabled={question.question_type === 'yes_no'}
+                                readOnly={question.question_type === 'yes_no'}
+                              />
+                              {question.question_type === 'radio' && question.options.length > 2 && (
+                                <Button
+                                  type="button"
+                                  onClick={() => handleRemoveOption(index, optionIndex)}
+                                  variant="ghost"
+                                  size="sm"
+                                  icon={Trash2}
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        {question.question_type === 'radio' && question.options.length < 2 && (
+                          <Alert variant="warning" className="mt-2">
+                            At least 2 options are required
+                          </Alert>
+                        )}
+                        {question.question_type === 'yes_no' && (
+                          <p className="text-xs text-gray-500 mt-1">Yes/No questions use fixed options</p>
+                        )}
                       </div>
                     )}
 
@@ -307,32 +380,23 @@ export default function CreateSurvey() {
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end space-x-3">
-            <button
+            <Button
               type="button"
               onClick={() => router.push('/admin')}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-survey-500 focus:border-survey-500"
+              variant="secondary"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={loading}
-              className="flex items-center px-4 py-2 text-sm font-medium text-white bg-survey-600 border border-transparent rounded-md hover:bg-survey-700 focus:outline-none focus:ring-2 focus:ring-survey-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              loading={loading}
+              variant="primary"
+              icon={Save}
             >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Create Survey
-                </>
-              )}
-            </button>
+              Create Survey
+            </Button>
           </div>
         </form>
       </div>

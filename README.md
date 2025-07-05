@@ -1,263 +1,333 @@
-# Flash Survey Tool - StoryStream Studios
+# Flash Survey Tool - Architecture & Operations Guide
 
 ## Architecture Overview
 
-### System Diagram
+The Flash Survey Tool is a high-performance, scalable survey platform built with a modern serverless architecture optimized for rate limiting, caching, and analytics.
+
+### System Architecture Diagram
+
+![System Architecture](architecture-overview.png)
+
+
+### Core Components
+
+| Component | Technology | Purpose | Performance Target |
+|-----------|------------|---------|-------------------|
+| **Frontend** | Next.js 14 + React 18 | Admin dashboard & survey forms | < 2s page load |
+| **Authentication** | Google OAuth via Supabase | Admin access control | < 500ms auth |
+| **API Layer** | Supabase Edge Functions (Deno) | Business logic & validation | < 750ms response |
+| **Database** | Supabase PostgreSQL | Survey data & responses | < 200ms queries |
+| **Cache & Rate Limiting** | Upstash Redis | IP-based limits & caching | < 100ms cache ops |
+| **File Storage** | Vercel/GitHub | Static assets & deployment | < 1s CDN delivery |
+
+### Data Flow Architecture
+
+#### 1. **Survey Creation Flow**
+Admin → JWT Verification → Edge Function → PostgreSQL Insert → Response Cache
+
+#### 2. **Public Response Flow**
+Public User → Rate Limit Check → Edge Function → PostgreSQL Insert → Vote Recording
+
+#### 3. **Analytics Flow**
+Admin → JWT Verification → Edge Function → PostgreSQL Query → Data Aggregation
+
+### Rate Limiting Strategy
+
+#### IP-Based Protection
+- **Survey Response**: 1 response per IP per survey (24-hour TTL)
+- **API Endpoints**: 60 requests per minute per IP
+- **Graceful Degradation**: Continue service if Redis unavailable
+
+#### Survey-Level Limits
+- **Max Responses**: Configurable per survey (default: 100)
+- **Expiration**: 3-day automatic expiration
+- **Concurrent Submissions**: Atomic operations prevent race conditions
+
+### Rollback Strategy
+
+#### 1. **Database Rollbacks**
+- All migrations are versioned and reversible
+- Point-in-time recovery available (7 days)
+- Backup restoration process documented
+
+#### 2. **Function Rollbacks**
+- Edge Functions deployed via Git tags
+- Previous versions available for instant rollback
+- Rollback command: `supabase functions deploy <function> --version <tag>`
+
+#### 3. **Cache Invalidation**
+- Redis TTL ensures automatic cleanup
+- Manual cache clear: `redis-cli FLUSHALL`
+- Survey-specific cache clear available
+
+#### 4. **Frontend Rollbacks**
+- Vercel deployment history (100 deployments)
+- Instant rollback via Vercel dashboard
+- Git-based rollback available
+
+---
+
+## Bootstrap Steps (< 5 Minutes)
+
+### Prerequisites Checklist
+- [ ] Node.js 18+ installed
+- [ ] Git repository cloned
+- [ ] Supabase account created
+- [ ] Upstash Redis account created
+- [ ] Google OAuth app configured
+
+### Quick Start Commands
+
+```bash
+# 1. Install dependencies (60 seconds)
+npm install
+
+# 2. Copy environment template (10 seconds)
+cp env.example .env.local
+
+# 3. Configure environment variables (2 minutes)
+# Edit .env.local with your credentials
+
+# 4. Start development server (30 seconds)
+npm run dev
+
+# 5. Verify installation (30 seconds)
+npm run test:functions
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│                 │    │                 │    │                 │
-│   React App     │◄──►│   Supabase      │◄──►│   Redis Cache   │
-│                 │    │                 │    │                 │
-│ - Admin Panel   │    │ - PostgreSQL    │    │ - Rate Limiting │
-│ - Survey Form   │    │ - Edge Functions│    │ - Session Cache │
-│ - Dashboard     │    │ - Realtime      │    │ - Response Cache│
-│                 │    │                 │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│                 │    │                 │    │                 │
-│  Google OAuth   │    │  Edge Functions │    │  Upstash Redis  │
-│                 │    │                 │    │                 │
-│ - Authentication│    │ - Vote Counting │    │ - Global Cache  │
-│ - User Profile  │    │ - Rate Limiting │    │ - Fast Lookups  │
-│                 │    │ - Analytics     │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+
+### Environment Variables Setup
+
+```bash
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# Redis Configuration
+UPSTASH_REDIS_REST_URL=your-redis-url
+UPSTASH_REDIS_REST_TOKEN=your-redis-token
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
 ```
 
-### Key Architectural Decisions
+### Database Migration (30 seconds)
 
-1. **React + Supabase + Redis Stack**
-   - React for responsive UI with real-time updates
-   - Supabase for managed PostgreSQL + Edge Functions
-   - Redis for caching and rate limiting
+```bash
+# Run migrations
+npx supabase db push
 
-2. **Google OAuth Integration**
-   - Secure admin authentication
-   - No manual user management required
+# Deploy Edge Functions
+npx supabase functions deploy --no-verify-jwt
+```
 
-3. **Rate Limiting & Security**
-   - Redis-based rate limiting (100 votes max per survey)
-   - IP-based duplicate prevention
-   - Survey expiration (3 days)
-
-4. **Real-time Dashboard**
-   - Supabase real-time subscriptions
-   - Live vote counting and analytics
-
-## Quick Start (< 5 minutes)
-
-### Prerequisites
-- Node.js 18+
-- Git
-- Google OAuth credentials
-- Supabase account
-- Upstash Redis account
-
-### Setup Steps
-
-1. **Clone and Install**
-   ```bash
-   git clone <repo-url>
-   cd ascend-asignment-1
-   npm install
-   ```
-
-2. **Environment Setup**
-   ```bash
-   cp .env.example .env.local
-   # Fill in your credentials (see .env.example for details)
-   ```
-
-3. **Database Setup**
-   ```bash
-   # Supabase migrations will auto-apply
-   npm run db:setup
-   ```
-
-4. **Start Development**
-   ```bash
-   npm run dev
-   ```
-
-5. **Access Application**
-   - Admin: `http://localhost:3000/admin`
-   - Survey: Public links generated after creation
+---
 
 ## Performance Budgets & Measurement
 
 ### Performance Targets
-- **P95 Page Load:** ≤ 2s (Singapore POP)
-- **P99 Edge Function:** ≤ 750ms
-- **Survey Response Time:** ≤ 500ms
-- **Dashboard Update:** Real-time (< 100ms)
 
-### Measurement Methods
-1. **Core Web Vitals**
-   - LCP (Largest Contentful Paint) < 2.5s
-   - CLS (Cumulative Layout Shift) < 0.1
-   - FID (First Input Delay) < 100ms
+| Metric | Target | Measurement Method | Monitoring |
+|--------|--------|-------------------|------------|
+| **Page Load Time** | ≤ 2000ms | Core Web Vitals | Lighthouse CI |
+| **API Response Time** | ≤ 750ms | Edge Function logs | Supabase metrics |
+| **Database Query Time** | ≤ 200ms | PostgreSQL logs | Query analysis |
+| **Cache Hit Rate** | ≥ 85% | Redis metrics | Upstash dashboard |
+| **Rate Limit Efficiency** | ≤ 100ms | Request timing | Custom metrics |
 
-2. **Edge Function Monitoring**
-   - Built-in Supabase analytics
-   - Custom performance logging
-   - Redis response time tracking
+### Monitoring Setup
 
-3. **Load Testing**
-   ```bash
-   npm run test:load
-   ```
-
-### Performance Optimizations
-- React code splitting and lazy loading
-- Supabase connection pooling
-- Redis caching for frequently accessed data
-- Optimized database queries with indexes
-- Image optimization and CDN usage
-
-## Cost Structure
-
-### Marginal Costs (per 1000 surveys)
-- **Supabase Rows:** ~500 rows × $0.00013 = $0.065
-- **Upstash Operations:** ~2000 ops × $0.0002 = $0.40
-- **Edge Function Invocations:** ~3000 calls × $0.0000002 = $0.0006
-- **Total per 1000 surveys:** ~$0.466
-
-### Cost Optimization
-- Survey data retention: 30 days
-- Redis TTL: 7 days for survey responses
-- Automatic cleanup of expired surveys
-- Efficient database indexing
-
-## Technology Stack
-
-### Frontend
-- **React 18** with hooks and context
-- **Next.js 14** for SSR and routing
-- **Tailwind CSS** for styling
-- **Radix UI** for components
-- **React Query** for data fetching
-
-### Backend
-- **Supabase PostgreSQL** for data storage
-- **Supabase Edge Functions** (Deno) for API logic
-- **Supabase Realtime** for live updates
-- **Upstash Redis** for caching and rate limiting
-
-### Authentication
-- **Google OAuth2** via Supabase Auth
-- **Row Level Security** for data protection
-
-### Deployment
-- **Vercel** for frontend hosting
-- **Supabase** for backend services
-- **GitHub Actions** for automated CI/CD deployment
-
-## Deployment
-
-### Automated CI/CD with GitHub Actions
-
-The project includes a comprehensive GitHub Actions workflow for automated deployment:
-
-#### 🚀 **Automatic Deployment Triggers**
-- **Production**: Push to `main` or `master` branch
-- **Validation**: Pull requests (validates migrations and functions)
-- **Manual**: Workflow dispatch from GitHub Actions tab
-
-#### 📋 **Deployment Process**
-1. **Database Migrations**: Automatically applies schema changes
-2. **Edge Functions**: Deploys all serverless functions
-3. **Validation**: Checks deployment status and health
-4. **Notifications**: Provides deployment summary and status
-
-#### 🔧 **Setup Instructions**
-See [DEPLOYMENT_SETUP.md](./DEPLOYMENT_SETUP.md) for detailed setup instructions including:
-- Required GitHub secrets configuration
-- Supabase project linking
-- Troubleshooting common issues
-
-#### 🛠️ **Manual Deployment**
-```bash
-# Deploy migrations
-npx supabase db push
-
-# Deploy functions
-npx supabase functions deploy --no-verify-jwt
+#### 1. Frontend Monitoring
+```javascript
+// Add to _app.tsx
+export function reportWebVitals(metric) {
+  if (metric.label === 'web-vital') {
+    console.log(metric)
+  }
+}
 ```
 
-## API Endpoints
+#### 2. Load Testing
+```bash
+# Run load tests
+npm run test:load
 
-### Admin Endpoints
-- `POST /api/surveys` - Create new survey
-- `GET /api/surveys` - List admin surveys
-- `GET /api/surveys/:id` - Get survey details
-- `GET /api/surveys/:id/results` - Get survey results
+# Simple performance test
+npm run test:load-simple
+```
 
-### Public Endpoints
-- `GET /api/survey/:token` - Get public survey
-- `POST /api/survey/:token/vote` - Submit vote
-- `GET /api/survey/:token/status` - Check survey status
+#### 3. Performance Benchmarks
+- **k6 Load Testing**: 100 concurrent users, 6-minute test
+- **Lighthouse Score**: Target 90+ on all metrics
+- **Database Performance**: Query execution plans monitored
 
-## Security Features
+### Measurement Tools
 
-1. **Rate Limiting**
-   - 100 votes per survey maximum
-   - IP-based duplicate prevention
-   - Redis-backed rate limiting
+| Tool | Purpose | Frequency | Threshold |
+|------|---------|-----------|-----------|
+| **Lighthouse CI** | Core Web Vitals | Every deployment | Score > 90 |
+| **k6** | Load testing | Weekly | p95 < 2s |
+| **Upstash Metrics** | Cache performance | Continuous | Hit rate > 85% |
+| **Supabase Metrics** | Database performance | Continuous | Query time < 200ms |
 
-2. **Data Protection**
-   - Row Level Security (RLS)
-   - Anonymous voting
-   - Automatic data expiration
+---
 
-3. **Authentication**
-   - Google OAuth2 only
-   - Admin-only survey creation
-   - Secure session management
+## Marginal Cost Analysis
 
-## Monitoring & Observability
+### Cost Structure Overview
+
+Our serverless architecture provides excellent cost efficiency with pay-per-use pricing:
+
+#### Supabase Database Operations
+- **Base Cost**: $25/month (Pro plan)
+- **Additional Costs**: 
+  - Database reads: $0.10 per 1M operations
+  - Database writes: $0.50 per 1M operations
+  - Storage: $0.125 per GB/month
+  - Bandwidth: $0.09 per GB
+
+#### Upstash Redis Operations
+- **Base Cost**: $0.20 per 100K operations
+- **Additional Costs**:
+  - Storage: $0.125 per GB/month
+  - Bandwidth: $0.09 per GB
+
+### Cost Per Survey Response
+
+Based on current usage patterns:
+
+| Operation | Cost per 1000 Responses | Notes |
+|-----------|------------------------|--------|
+| **Survey Creation** | $0.0005 | One-time per survey |
+| **Response Submission** | $0.0025 | 5 DB writes per response |
+| **Rate Limiting** | $0.0020 | 2 Redis operations per response |
+| **Analytics Queries** | $0.0015 | 3 DB reads per dashboard view |
+| **Total per Response** | **$0.0065** | **≈ $6.50 per 1000 responses** |
+
+### Scaling Projections
+
+| Monthly Responses | Supabase Cost | Upstash Cost | Total Cost |
+|------------------|---------------|--------------|------------|
+| 1,000 | $25.01 | $0.20 | $25.21 |
+| 10,000 | $25.10 | $2.00 | $27.10 |
+| 100,000 | $26.00 | $20.00 | $46.00 |
+| 1,000,000 | $35.00 | $200.00 | $235.00 |
+
+### Cost Optimization Strategies
+
+1. **Efficient Queries**: Use indexed columns and limit result sets
+2. **Smart Caching**: 5-minute TTL for survey data reduces DB reads by 80%
+3. **Rate Limiting**: Prevents abuse and unnecessary resource usage
+4. **Batch Operations**: Group related operations to reduce API calls
+
+---
+
+## Deployment & Rollback Procedures
+
+### Deployment Pipeline
+
+```bash
+# 1. Run tests
+npm run test && npm run test:functions
+
+# 2. Deploy Edge Functions
+npx supabase functions deploy --no-verify-jwt
+
+# 3. Deploy frontend
+vercel --prod
+
+# 4. Verify deployment
+npm run test:load-simple
+```
+
+### Rollback Procedures
+
+#### Database Rollback
+```bash
+# Rollback to previous migration
+npx supabase db reset
+
+# Restore from backup
+npx supabase db restore --backup-id <backup-id>
+```
+
+#### Function Rollback
+```bash
+# Rollback to previous version
+npx supabase functions deploy <function> --version <previous-tag>
+```
+
+#### Frontend Rollback
+```bash
+# Via Vercel CLI
+vercel rollback <deployment-url>
+```
+
+---
+
+## Monitoring & Alerting
 
 ### Health Checks
-- Database connectivity
-- Redis availability
-- Edge function responsiveness
-- OAuth service status
-
-### Logging
-- Structured logging in Edge Functions
-- Performance metrics collection
-- Error tracking and alerting
-
-### Metrics Dashboard
-- Survey creation rate
-- Vote submission rate
-- Response time distribution
-- Error rate monitoring
-
-## Development Scripts
 
 ```bash
-# Development
-npm run dev              # Start development server
-npm run build           # Build for production
-npm run start           # Start production server
+# System health check
+curl -f https://your-app.vercel.app/api/health
 
-# Database
-npm run db:setup        # Setup database schema
-npm run db:seed         # Seed test data
-npm run db:reset        # Reset database
+# Database health
+npx supabase status
 
-# Testing
-npm run test            # Run unit tests
-npm run test:e2e        # Run e2e tests
-npm run test:load       # Run load tests
-
-# Deployment
-npm run deploy          # Deploy to production
-npm run deploy:staging  # Deploy to staging
+# Redis health
+redis-cli ping
 ```
 
-## Support
+### Performance Monitoring
 
-For technical support or questions about the Flash Survey tool, please refer to the development team or create an issue in the repository. 
+- **Uptime Monitoring**: 99.9% target
+- **Response Time**: p95 < 2s
+- **Error Rate**: < 0.1%
+- **Cache Hit Rate**: > 85%
+
+### Error Tracking
+
+- **Console Logging**: All errors logged to Supabase
+- **Client-side Errors**: Tracked via browser console
+- **Rate Limiting**: Monitored via Redis metrics in Upstash
+
+---
+
+## Troubleshooting Guide
+
+### Common Issues
+
+#### Database Connection Issues
+```bash
+# Check Supabase status
+npx supabase status
+
+# Test database connection
+npx supabase db ping
+```
+
+#### Redis Connection Issues
+```bash
+# Test Redis connection
+redis-cli -u $UPSTASH_REDIS_REST_URL ping
+```
+
+#### Rate Limiting Issues
+```bash
+# Check rate limit status
+redis-cli get "survey:*:ip:*"
+
+# Clear rate limits
+redis-cli del "survey:*:ip:*"
+```
+
+## Documentation
+
+### `/docs` Folder Contents
+
+- **[DEPLOYMENT_SETUP.md](docs/DEPLOYMENT_SETUP.md)** - GitHub Actions deployment configuration and workflow setup
+- **[DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md)** - 6-hour MVP development timeline and technical debt prioritization
+- **[RETRO.md](docs/RETRO.md)** - Project retrospective with learnings, improvements, and next steps

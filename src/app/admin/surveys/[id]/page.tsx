@@ -3,10 +3,11 @@
 import { getCurrentUser, getSurveyAnalytics } from '@/lib/api/client'
 import { SurveyAnalytics } from '@/types'
 import { format } from 'date-fns'
-import { ArrowLeft, BarChart3, Calendar, Copy, ExternalLink, TrendingUp } from 'lucide-react'
+import { BarChart3, Calendar, Copy, ExternalLink, TrendingUp, Users } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
+import { LoadingPage, Alert, Button, PageHeader, StatsCard } from '@/components/ui'
 
 export default function SurveyResults() {
   const router = useRouter()
@@ -16,10 +17,10 @@ export default function SurveyResults() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (params.id) {
+    if (params?.id) {
       loadSurveyData(params.id as string)
     }
-  }, [params.id])
+  }, [params?.id])
 
   const loadSurveyData = async (surveyId: string) => {
     try {
@@ -62,25 +63,22 @@ export default function SurveyResults() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-survey-600"></div>
-      </div>
-    )
+    return <LoadingPage message="Loading survey data..." />
   }
 
   if (error || !surveyData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Survey Not Found</h2>
-          <p className="text-gray-600 mb-4">{error || 'The survey you\'re looking for doesn\'t exist.'}</p>
-          <button
+        <div className="text-center max-w-md">
+          <Alert variant="error" title="Survey Not Found" className="mb-4">
+            {error || 'The survey you\'re looking for doesn\'t exist.'}
+          </Alert>
+          <Button
+            variant="primary"
             onClick={() => router.push('/admin')}
-            className="px-4 py-2 bg-survey-600 text-white rounded-md hover:bg-survey-700"
           >
             Back to Dashboard
-          </button>
+          </Button>
         </div>
       </div>
     )
@@ -92,154 +90,130 @@ export default function SurveyResults() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => router.push('/admin')}
-                className="flex items-center text-gray-600 hover:text-gray-900"
-              >
-                <ArrowLeft className="h-5 w-5 mr-2" />
-                Back to Dashboard
-              </button>
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-survey-600 rounded-lg">
-                  <BarChart3 className="h-5 w-5 text-white" />
-                </div>
-                <h1 className="text-xl font-semibold text-gray-900">Survey Results</h1>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={handleCopyPublicLink}
-                className="flex items-center px-3 py-2 text-sm font-medium text-survey-600 bg-survey-50 hover:bg-survey-100 rounded-md"
-              >
-                <Copy className="h-4 w-4 mr-1" />
-                Copy Link
-              </button>
-              <button
-                onClick={handleOpenPublicLink}
-                className="flex items-center px-3 py-2 text-sm font-medium text-white bg-survey-600 hover:bg-survey-700 rounded-md"
-              >
-                <ExternalLink className="h-4 w-4 mr-1" />
-                View Public
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        title="Survey Results"
+        icon={BarChart3}
+        showBackButton={true}
+        onBackClick={() => router.push('/admin')}
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              onClick={handleCopyPublicLink}
+              icon={Copy}
+              size="sm"
+            >
+              Copy Link
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleOpenPublicLink}
+              icon={ExternalLink}
+              size="sm"
+            >
+              View Public
+            </Button>
+          </>
+        }
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Survey Info */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">{survey.title}</h2>
-            <div className="flex items-center space-x-2">
-              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                isActive 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-red-100 text-red-800'
-              }`}>
-                {isActive ? 'Active' : 'Expired'}
-              </span>
-            </div>
-          </div>
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{survey.title}</h2>
+          <p className="text-gray-600 mb-4">{survey.description}</p>
           
-          {survey.description && (
-            <p className="text-gray-600 mb-4">{survey.description}</p>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center space-x-2">
-              <TrendingUp className="h-5 w-5 text-gray-400" />
-              <div>
-                <p className="text-sm text-gray-600">Responses</p>
-                <p className="text-lg font-semibold">{totalResponses}/{survey.max_votes}</p>
-              </div>
+          <div className="flex items-center space-x-6 text-sm text-gray-500">
+            <div className="flex items-center space-x-1">
+              <Calendar className="h-4 w-4" />
+              <span>Created {format(new Date(survey.created_at), 'MMM d, yyyy')}</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <Calendar className="h-5 w-5 text-gray-400" />
-              <div>
-                <p className="text-sm text-gray-600">Created</p>
-                <p className="text-lg font-semibold">{format(new Date(survey.created_at), 'MMM d, yyyy')}</p>
-              </div>
+            <div className="flex items-center space-x-1">
+              <Calendar className="h-4 w-4" />
+              <span>Expires {format(new Date(survey.expires_at), 'MMM d, yyyy')}</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <Calendar className="h-5 w-5 text-gray-400" />
-              <div>
-                <p className="text-sm text-gray-600">Expires</p>
-                <p className="text-lg font-semibold">{format(new Date(survey.expires_at), 'MMM d, yyyy')}</p>
-              </div>
-            </div>
+            <span className={`px-2 py-1 text-xs rounded-full ${
+              isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+            }`}>
+              {isActive ? 'Active' : 'Expired'}
+            </span>
           </div>
         </div>
 
-        {/* Questions and Results */}
-        <div className="space-y-6">
-          {questions.map((question, index) => (
-            <div key={question.question_id} className="bg-white rounded-lg shadow-sm p-6">
-              <div className="mb-4">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Question {index + 1}: {question.question_text}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {question.total_responses} responses • Multiple Choice
-                </p>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <StatsCard
+            title="Total Responses"
+            value={`${totalResponses} / ${survey.max_votes}`}
+            icon={Users}
+          />
+          <StatsCard
+            title="Completion Rate"
+            value={`${Math.round((totalResponses / survey.max_votes) * 100)}%`}
+            icon={TrendingUp}
+            iconColor="text-green-600"
+          />
+          <StatsCard
+            title="Questions"
+            value={questions.length}
+            icon={BarChart3}
+            iconColor="text-blue-600"
+          />
+        </div>
 
-              {question.options.length > 0 ? (
-                <div className="space-y-3">
-                  {question.options.map((option, idx) => (
-                    <div key={idx} className="flex items-center space-x-4">
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium text-gray-700">{option.option_text}</span>
-                          <span className="text-sm text-gray-500">
-                            {option.count} ({option.percentage.toFixed(1)}%)
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-survey-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${option.percentage}%` }}
-                          ></div>
-                        </div>
+        <div className="bg-white shadow rounded-lg">
+          <div className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">Question Results</h3>
+            
+            {questions.length === 0 ? (
+              <Alert variant="info">
+                No questions found for this survey.
+              </Alert>
+            ) : (
+              <div className="space-y-8">
+                {questions.map((question, index) => (
+                  <div key={question.question_id} className="border-b border-gray-200 pb-6 last:border-b-0">
+                    <h4 className="font-medium text-gray-900 mb-4">
+                      {index + 1}. {question.question_text}
+                    </h4>
+                    
+                    {question.options && question.options.length > 0 ? (
+                      <div className="space-y-3">
+                        {question.options.map((option) => {
+                          const percentage = totalResponses > 0 
+                            ? Math.round((option.count / totalResponses) * 100)
+                            : 0
+                          
+                          return (
+                            <div key={option.option_id} className="flex items-center space-x-3">
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-sm font-medium text-gray-700">
+                                    {option.option_text}
+                                  </span>
+                                  <span className="text-sm text-gray-500">
+                                    {option.count} votes ({percentage}%)
+                                  </span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                  <div 
+                                    className="bg-survey-600 h-2 rounded-full transition-all duration-300"
+                                    style={{ width: `${percentage}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <BarChart3 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No responses yet</p>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Public Link Section */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Public Survey Link</h3>
-          <div className="flex items-center space-x-3">
-            <input
-              type="text"
-              value={`${window.location.origin}/survey/${survey.public_token}`}
-              readOnly
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 text-sm"
-            />
-            <button
-              onClick={handleCopyPublicLink}
-              className="px-4 py-2 bg-survey-600 text-white rounded-md hover:bg-survey-700 text-sm font-medium"
-            >
-              Copy
-            </button>
+                    ) : (
+                      <Alert variant="warning">
+                        No options available for this question.
+                      </Alert>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          <p className="mt-2 text-sm text-gray-600">
-            Share this link with your audience to collect responses. 
-            {isActive ? ' This survey is currently active.' : ' This survey has expired.'}
-          </p>
         </div>
       </div>
     </div>
