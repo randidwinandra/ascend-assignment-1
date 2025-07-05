@@ -133,13 +133,22 @@ export default function AdminDashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
+                {/* Default avatar data URI contains: gray circle with user icon (32x32 SVG) */}
                 <img
-                  src={user?.user_metadata?.avatar_url || '/default-avatar.png'}
-                  alt={user?.user_metadata?.full_name || 'User'}
-                  className="w-8 h-8 rounded-full"
+                  src={user?.user_metadata?.avatar_url || user?.user_metadata?.picture || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNiIgZmlsbD0iI0U1RTdFQiIvPgogIDxjaXJjbGUgY3g9IjE2IiBjeT0iMTIiIHI9IjUiIGZpbGw9IiM5Q0EzQUYiLz4KICA8cGF0aCBkPSJNNiAyN2MwLTUuNTIzIDQuNDc3LTEwIDEwLTEwczEwIDQuNDc3IDEwIDEwIiBzdHJva2U9IiM5Q0EzQUYiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPg=='}
+                  alt={user?.user_metadata?.full_name || user?.user_metadata?.name || 'User'}
+                  className="w-8 h-8 rounded-full bg-gray-200"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    // Only set fallback if we're not already using it and haven't failed before
+                    if (!target.src.startsWith('data:image/svg+xml;base64,') && !target.dataset.fallbackFailed) {
+                      target.dataset.fallbackFailed = 'true'
+                      target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNiIgZmlsbD0iI0U1RTdFQiIvPgogIDxjaXJjbGUgY3g9IjE2IiBjeT0iMTIiIHI9IjUiIGZpbGw9IiM5Q0EzQUYiLz4KICA8cGF0aCBkPSJNNiAyN2MwLTUuNTIzIDQuNDc3LTEwIDEwLTEwczEwIDQuNDc3IDEwIDEwIiBzdHJva2U9IiM5Q0EzQUYiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPg=='
+                    }
+                  }}
                 />
                 <span className="text-sm font-medium text-gray-700">
-                  {user?.user_metadata?.full_name || user?.email}
+                  {user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email}
                 </span>
               </div>
               <button
@@ -154,7 +163,7 @@ export default function AdminDashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="stats-card">
             <div className="flex items-center">
               <div className="p-2 bg-survey-100 rounded-lg">
@@ -187,18 +196,6 @@ export default function AdminDashboard() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Responses</p>
                 <p className="text-2xl font-semibold text-gray-900">{stats.total_responses}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="stats-card">
-            <div className="flex items-center">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-orange-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Completion Rate</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.completion_rates.average}%</p>
               </div>
             </div>
           </div>

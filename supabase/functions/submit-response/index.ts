@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0"
 import { corsHeaders } from "../_shared/cors.ts"
+import { checkSurveyVoteLimit, recordVote, getClientIP } from "../_shared/redis.ts"
 
 interface SubmitResponseRequest {
   survey_token: string
@@ -17,6 +18,9 @@ serve(async (req) => {
   }
 
   try {
+    // Get client IP for rate limiting
+    const clientIP = getClientIP(req)
+    
     // Parse request body
     const { survey_token, responses }: SubmitResponseRequest = await req.json()
 
@@ -73,6 +77,42 @@ serve(async (req) => {
         { 
           status: 410, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    // Redis rate limiting check
+    const rateLimit = await checkSurveyVoteLimit(survey.id, clientIP)
+    if (!rateLimit.allowed) {
+      // Create user-friendly error messages
+      let errorMessage = 'Rate limit exceeded'
+      let retryAfter: number | undefined = 3600 // 1 hour default
+      
+      if (rateLimit.reason === 'IP already voted') {
+        errorMessage = 'You have already submitted a response to this survey. Each person can only vote once per survey.'
+        retryAfter = undefined // No retry for duplicate votes
+      } else if (rateLimit.reason === 'Survey vote limit reached') {
+        errorMessage = 'This survey has reached its maximum number of responses and is no longer accepting new submissions.'
+        retryAfter = undefined // No retry for maxed out surveys
+      }
+      
+      // Build response object conditionally
+      const responseData: any = { error: errorMessage }
+      if (retryAfter !== undefined) {
+        responseData.retry_after = retryAfter
+      }
+      
+      return new Response(
+        JSON.stringify(responseData),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'X-RateLimit-Limit': '1',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': retryAfter ? new Date(Date.now() + retryAfter * 1000).toISOString() : ''
+          }
         }
       )
     }
@@ -169,13 +209,32 @@ serve(async (req) => {
       )
     }
 
-    // Note: We no longer update total_votes in surveys table
-    // Instead, we count distinct submission_ids from responses table
+    // Record vote in Redis for rate limiting and analytics
+    const voteData = {
+      survey_id: survey.id,
+      submission_id: submissionId,
+      client_ip: clientIP,
+      timestamp: new Date().toISOString(),
+      responses: responses.length
+    }
+    
+    const redisResult = await recordVote(survey.id, clientIP, voteData)
+    
+    // Log Redis result for debugging (don't fail request if Redis fails)
+    if (!redisResult.success) {
+      console.warn('Redis vote recording failed:', redisResult.redis_error)
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Response submitted successfully'
+        message: 'Response submitted successfully',
+        submission_id: submissionId,
+        meta: {
+          redis_recorded: redisResult.success,
+          total_responses: uniqueSubmissions + 1,
+          remaining_slots: survey.max_votes - (uniqueSubmissions + 1)
+        }
       }),
       { 
         status: 201,

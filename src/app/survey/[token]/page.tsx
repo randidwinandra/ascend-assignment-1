@@ -15,6 +15,7 @@ export default function PublicSurvey() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [alreadyVoted, setAlreadyVoted] = useState(false)
   const [responses, setResponses] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -84,9 +85,29 @@ export default function PublicSurvey() {
       await submitSurveyResponse(responseData)
       setSubmitted(true)
       toast.success('Survey submitted successfully!')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting survey:', error)
-      toast.error('Failed to submit survey. Please try again.')
+      
+      // Display specific error message from backend
+      const errorMessage = error?.message || 'Failed to submit survey. Please try again.'
+      
+      // Check if user has already voted
+      if (error?.message?.includes('already submitted') || error?.message?.includes('already vote')) {
+        setAlreadyVoted(true)
+        toast.error(errorMessage, {
+          duration: 8000,
+          style: {
+            background: '#fef2f2',
+            color: '#dc2626',
+            border: '1px solid #fecaca',
+            fontWeight: '500'
+          }
+        })
+      } else {
+        toast.error(errorMessage, {
+          duration: 5000
+        })
+      }
     } finally {
       setSubmitting(false)
     }
@@ -194,8 +215,29 @@ export default function PublicSurvey() {
             )}
           </div>
 
+          {/* Already Voted Error Message */}
+          {alreadyVoted && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">
+                    Response Already Submitted
+                  </h3>
+                  <p className="text-sm text-red-700 mt-1">
+                    You have already submitted a response to this survey. Each person can only vote once per survey.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Survey Form */}
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} className={`space-y-8 ${alreadyVoted ? 'opacity-50 pointer-events-none' : ''}`}>
             {survey.questions?.map((question, index) => (
               <div key={question.id} className="border-b border-gray-200 pb-8 last:border-b-0">
                 <div className="mb-4">
