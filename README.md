@@ -13,12 +13,11 @@ The Flash Survey Tool is a high-performance, scalable survey platform built with
 
 | Component | Technology | Purpose | Performance Target |
 |-----------|------------|---------|-------------------|
-| **Frontend** | Next.js 14 + React 18 | Admin dashboard & survey forms | < 2s page load |
-| **Authentication** | Google OAuth via Supabase | Admin access control | < 500ms auth |
-| **API Layer** | Supabase Edge Functions (Deno) | Business logic & validation | < 750ms response |
-| **Database** | Supabase PostgreSQL | Survey data & responses | < 200ms queries |
-| **Cache & Rate Limiting** | Upstash Redis | IP-based limits & caching | < 100ms cache ops |
-| **File Storage** | Vercel/GitHub | Static assets & deployment | < 1s CDN delivery |
+| **Frontend** | Next.js 14 + React 18 | Admin dashboard & survey forms | < 2s page load (tested) |
+| **Authentication** | Google OAuth via Supabase | Admin access control | < 500ms auth (tested) |
+| **API Layer** | Supabase Edge Functions (Deno) | Business logic & validation | < 750ms response (tested) |
+| **Database** | Supabase PostgreSQL | Survey data & responses | < 200ms queries (not tested) |
+| **Cache & Rate Limiting** | Upstash Redis | IP-based limits & caching | < 100ms cache ops (not tested) |
 
 ### Data Flow Architecture
 
