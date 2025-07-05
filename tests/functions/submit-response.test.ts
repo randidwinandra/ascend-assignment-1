@@ -3,7 +3,6 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals'
 describe('submit-response Edge Function', () => {
   let mockSupabase: any
   let mockRedis: any
-  let mockRequest: Request
 
   beforeEach(() => {
     // Mock Supabase client
@@ -43,15 +42,6 @@ describe('submit-response Edge Function', () => {
       ]
     }
 
-    mockRequest = new Request('http://localhost', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Forwarded-For': '192.168.1.1'
-      },
-      body: JSON.stringify(responseData)
-    })
-
     // Mock survey exists and is valid
     mockSupabase.single.mockResolvedValue({
       data: {
@@ -73,20 +63,6 @@ describe('submit-response Edge Function', () => {
   })
 
   it('should reject duplicate votes (rate limiting)', async () => {
-    const responseData = {
-      survey_token: 'valid-token',
-      responses: [{ question_id: 'q1', option_id: 'opt1' }]
-    }
-
-    mockRequest = new Request('http://localhost', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Forwarded-For': '192.168.1.1'
-      },
-      body: JSON.stringify(responseData)
-    })
-
     // Mock survey exists
     mockSupabase.single.mockResolvedValue({
       data: {
@@ -106,19 +82,6 @@ describe('submit-response Edge Function', () => {
   })
 
   it('should reject expired surveys', async () => {
-    const responseData = {
-      survey_token: 'expired-token',
-      responses: [{ question_id: 'q1', option_id: 'opt1' }]
-    }
-
-    mockRequest = new Request('http://localhost', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(responseData)
-    })
-
     // Mock expired survey
     mockSupabase.single.mockResolvedValue({
       data: {
@@ -141,32 +104,11 @@ describe('submit-response Edge Function', () => {
       responses: [] // No responses
     }
 
-    mockRequest = new Request('http://localhost', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(invalidData)
-    })
-
     expect(invalidData.survey_token).toBe('')
     expect(invalidData.responses).toHaveLength(0)
   })
 
   it('should handle survey not found', async () => {
-    const responseData = {
-      survey_token: 'nonexistent-token',
-      responses: [{ question_id: 'q1', option_id: 'opt1' }]
-    }
-
-    mockRequest = new Request('http://localhost', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(responseData)
-    })
-
     // Mock survey not found
     mockSupabase.single.mockResolvedValue({
       data: null,
@@ -196,11 +138,6 @@ describe('submit-response Edge Function', () => {
   })
 
   it('should handle Redis connection errors gracefully', async () => {
-    const responseData = {
-      survey_token: 'valid-token',
-      responses: [{ question_id: 'q1', option_id: 'opt1' }]
-    }
-
     // Mock Redis connection error
     mockRedis.get.mockRejectedValue(new Error('Redis connection failed'))
     

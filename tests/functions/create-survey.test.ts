@@ -2,9 +2,7 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals'
 
 describe('create-survey Edge Function', () => {
   let mockSupabase: any
-  let mockRedis: any
   let mockRequest: Request
-  let mockResponse: Response
 
   beforeEach(() => {
     // Mock Supabase client
@@ -16,12 +14,7 @@ describe('create-survey Edge Function', () => {
       single: jest.fn()
     }
 
-    // Mock Redis client
-    mockRedis = {
-      set: jest.fn(),
-      get: jest.fn(),
-      del: jest.fn()
-    }
+
 
     // Mock Response constructor
     global.Response = jest.fn().mockImplementation((body, init) => ({

@@ -17,9 +17,7 @@ describe('Redis Functions', () => {
         json: async () => ({ result: null })
       } as Response)
 
-      const surveyId = 'test-survey-id'
-      const voterIp = '192.168.1.1'
-      const key = `survey:${surveyId}:ip:${voterIp}`
+      const key = `survey:test-survey-id:ip:192.168.1.1`
 
       // Test the key generation logic
       expect(key).toBe('survey:test-survey-id:ip:192.168.1.1')
@@ -36,8 +34,6 @@ describe('Redis Functions', () => {
         json: async () => ({ result: 'OK' })
       } as Response)
 
-      const surveyId = 'test-survey-id'
-      const voterIp = '192.168.1.1'
       const ttl = 60 * 60 * 24 // 24 hours
       const responseData = { question_id: 'q1', option_id: 'opt1' }
 
@@ -70,11 +66,6 @@ describe('Redis Functions', () => {
       } as Response)
 
       const surveyToken = 'test-token'
-      const surveyData = {
-        id: 'survey-id',
-        title: 'Test Survey',
-        description: 'A test survey'
-      }
       const cacheTTL = 5 * 60 // 5 minutes
 
       // Test cache key generation
@@ -119,11 +110,8 @@ describe('Redis Functions', () => {
 
   describe('IP Extraction', () => {
     it('should extract IP from X-Forwarded-For header', () => {
-      const headers = {
-        'X-Forwarded-For': '192.168.1.1, 10.0.0.1, 172.16.0.1'
-      }
-
-      const clientIP = headers['X-Forwarded-For']?.split(',')[0]?.trim()
+      const forwardedFor = '192.168.1.1, 10.0.0.1, 172.16.0.1'
+      const clientIP = forwardedFor.split(',')[0]?.trim()
       expect(clientIP).toBe('192.168.1.1')
     })
 
@@ -146,7 +134,6 @@ describe('Redis Functions', () => {
     })
 
     it('should handle missing IP headers', () => {
-      const headers = {}
       const clientIP = 'unknown'
       
       expect(clientIP).toBe('unknown')
