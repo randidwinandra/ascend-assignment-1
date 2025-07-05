@@ -1,27 +1,27 @@
 # Flash Survey Tool - Retrospective
 
-## What Went Well ✅
+## What Went Well
 
 - **Performance-First Architecture**: Serverless architecture with Next.js, Supabase Edge Functions, and Redis achieved target metrics (P95 < 2s page load, P99 < 750ms API response) with built-in scalability
 - **Cost-Efficient Design**: Pay-per-use pricing model with $6.50 per 1000 responses provides excellent marginal cost efficiency and predictable scaling economics
 - **Robust Rate Limiting**: Multi-layer IP-based protection with Redis TTL and atomic operations prevents abuse while maintaining service availability during Redis outages
 - **Structured Technical Debt Management**: Clear separation between MVP features and technical debt with explicit prioritization framework enables sustainable development velocity
 
-## Could Improve 🔄
+## Could Improve
 
 - **Security & Bot Protection**: Current IP-based rate limiting needs enhancement with CAPTCHA integration, advanced bot detection algorithms, and multi-layer fingerprinting to prevent sophisticated abuse
 - **Auto Expiry & Background Jobs**: Survey expiration currently relies on query-time checks - implementing a background job system for automated cleanup and scheduled notifications would improve system reliability
 - **Comprehensive Testing Suite**: Limited E2E testing coverage creates deployment risk - need Playwright/Cypress automation, load testing infrastructure, and edge case validation for rate limiting scenarios
 - **Error Handling & Resilience**: Missing circuit breaker patterns, graceful degradation for service outages, and comprehensive error boundaries reduce system reliability during partial failures
 
-## Next Bets 🎯
+## Next Bets
 
 - **Advanced Caching Strategy**: Implementing Redis caching for survey metadata and client-side caching for results would significantly reduce database load and improve response times at scale
 - **Framework Architecture Review**: Evaluating Next.js vs Vanilla React performance trade-offs with bundle size analysis would optimize for our specific use case and improve marginal costs
 - **Pagination & Data Management**: Implementing cursor-based pagination for large datasets and data archiving strategies would prevent performance degradation as survey volume grows
 - **Performance Optimization**: Database query optimization, memory profiling, and bundle size analysis would maintain sub-2s performance targets as the system scales beyond current capacity
 
-## Open Risks ⚠️
+## Open Risks
 
 - **Cost Scaling Trajectory**: At 1M responses/month, total cost reaches $235 with Redis representing 85% of expenses - need Redis memory optimization and cost monitoring before reaching 100K+ responses
 - **Technical Debt Accumulation**: Current 6-hour MVP prioritized speed over resilience - missing circuit breakers, comprehensive testing, and background job systems create operational risk as usage scales

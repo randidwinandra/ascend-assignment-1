@@ -2,7 +2,7 @@
 
 This guide will help you configure automatic deployment of your Supabase project using GitHub Actions.
 
-## 🔧 Required GitHub Secrets
+## Required GitHub Secrets
 
 You need to set up the following secrets in your GitHub repository:
 
@@ -12,49 +12,50 @@ You need to set up the following secrets in your GitHub repository:
 - Click **New repository secret**
 
 ### 2. Add Required Secrets
+#### **Required for Deployment**
+- `SUPABASE_PROJECT_REF`
+- `SUPABASE_ACCESS_TOKEN`
+- `SUPABASE_DB_PASSWORD`
 
-#### `SUPABASE_ACCESS_TOKEN`
-- **Description**: Your Supabase access token for CLI authentication
-- **How to get it**:
-  1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
-  2. Click on your profile (top right)
-  3. Go to **Access Tokens**
-  4. Generate a new token with appropriate permissions
-  5. Copy the token value
+#### **Required for Testing**
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
 
-#### `SUPABASE_PROJECT_REF`
-- **Description**: Your Supabase project reference ID
-- **How to get it**:
-  1. Go to your [Supabase Dashboard](https://supabase.com/dashboard)
-  2. Select your project
-  3. Go to **Settings** → **General**
-  4. Copy the **Project ID** (looks like: `abcdefghijklmnopqrstuvwxyz`)
 
-#### `SUPABASE_DB_PASSWORD`
-- **Description**: Your Supabase database password
-- **How to get it**:
-  1. Go to your [Supabase Dashboard](https://supabase.com/dashboard)
-  2. Select your project
-  3. Go to **Settings** → **Database**
-  4. Copy the password you set during project creation
-  5. If you forgot it, you can reset it from the same page
+## How the Workflow Works
 
-## 🚀 How the Workflow Works
+The workflow has three main jobs:
 
-The workflow has two main jobs:
+### **Test Job** (Quality Assurance)
+- **Triggered by**: Push or pull requests to main/develop branch
+- **Purpose**: Ensures code quality and functionality before deployment
+- **Process**:
+  1. **Code Quality Checks**:
+     - TypeScript type checking (`npm run type-check`)
+     - ESLint code linting (`npm run lint`)
+     - Unit tests execution (`npm test`)
+     - Code coverage analysis (`npm run test:coverage`)
+  2. **Edge Function Testing**:
+     - Tests Edge Functions logic (`npm run test:functions`)
+     - Uses live Supabase and Redis connections
+     - Validates API endpoints and business logic
+     - Tests rate limiting and caching functionality
 
-### 📋 **Validation Job** (Pull Requests)
-- ✅ **Triggered by**: Pull requests to main/master branch
-- ✅ **Purpose**: Validates migrations and functions without deploying
-- ✅ **Checks**: 
+### **Validation Job** (Pull Requests)
+- **Triggered by**: Pull requests to main/master branch
+- **Purpose**: Validates migrations and functions without deploying
+- **Checks**: 
   - Migration files exist and are valid
   - Function directories are present
   - Basic project structure is intact
 
-### 🚀 **Deploy Job** (Production)
-- ✅ **Triggered by**: Push to main/master branch or manual trigger
-- ✅ **Purpose**: Deploys to production Supabase project
-- ✅ **Process**:
+### **Deploy Job** (Production)
+- **Triggered by**: Push to main/master branch or manual trigger
+- **Purpose**: Deploys to production Supabase project
+- **Process**:
   1. **Environment Setup** - Installs Node.js and Supabase CLI
   2. **Project Linking** - Connects to your Supabase project
   3. **Migration Status** - Checks current migration state
@@ -63,7 +64,8 @@ The workflow has two main jobs:
   6. **Verification** - Confirms deployment success
   7. **Summary** - Provides deployment summary in GitHub
 
-## 📋 What the Workflow Does
+  
+## What the Workflow Does
 
 ### For Pull Requests (Validation Only)
 - Validates project structure
@@ -76,14 +78,14 @@ The workflow has two main jobs:
 - Provides detailed deployment logs and summaries
 - Posts deployment status to GitHub summary
 
-## 🔐 Security Notes
+## Security Notes
 
 - All secrets are encrypted and only accessible to your GitHub Actions
 - The workflow uses the `production` environment for additional security
 - Database operations are performed with proper authentication
 - Functions are deployed without JWT verification for the deployment process
 
-## 🛠️ Troubleshooting
+## Troubleshooting
 
 ### Common Issues:
 
@@ -106,7 +108,7 @@ supabase db push
 supabase functions deploy --no-verify-jwt
 ```
 
-## 📦 Current Project Structure
+## Current Project Structure
 
 ```
 supabase/
@@ -121,14 +123,3 @@ supabase/
     ├── get-surveys/
     └── submit-response/
 ```
-
-## 🎯 Next Steps
-
-1. Set up all required GitHub secrets
-2. Push your code to the main branch
-3. Watch the deployment in the **Actions** tab
-4. Your Supabase project will be automatically updated! 🚀
-
----
-
-**Questions?** Check the GitHub Actions logs for detailed deployment information. 
