@@ -3,7 +3,7 @@
 import { getCurrentUser, getSurveys, signOut } from '@/lib/api/client'
 import { DashboardStats, SurveyListItem } from '@/types'
 import { format } from 'date-fns'
-import { BarChart3, Clock, Copy, Eye, Plus, TrendingUp, Users } from 'lucide-react'
+import { BarChart3, Clock, Copy, Eye, Plus, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
