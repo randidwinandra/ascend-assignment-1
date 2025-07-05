@@ -3,13 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0"
 import { corsHeaders } from "../_shared/cors.ts"
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Get authorization header
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(
@@ -21,7 +19,6 @@ serve(async (req) => {
       )
     }
 
-    // Get survey ID from URL
     const url = new URL(req.url)
     const surveyId = url.pathname.split('/').pop()
 
@@ -35,7 +32,6 @@ serve(async (req) => {
       )
     }
 
-    // Create Supabase client with service role key for server operations
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -48,7 +44,6 @@ serve(async (req) => {
       }
     )
 
-    // Get current user using the JWT token
     const token = authHeader.replace('Bearer ', '')
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     
@@ -62,7 +57,6 @@ serve(async (req) => {
       )
     }
 
-    // Get admin user
     const { data: adminUser, error: adminError } = await supabase
       .from('admin_users')
       .select('id')
@@ -79,7 +73,6 @@ serve(async (req) => {
       )
     }
 
-    // Get survey with questions and responses
     const { data: survey, error: surveyError } = await supabase
       .from('surveys')
       .select(`
@@ -118,7 +111,6 @@ serve(async (req) => {
       )
     }
 
-    // Get all responses for this survey
     const { data: responses, error: responsesError } = await supabase
       .from('responses')
       .select(`
@@ -143,17 +135,14 @@ serve(async (req) => {
       )
     }
 
-    // Count total unique submissions
     const totalSubmissions = responses ? 
       new Set(responses.map((r: any) => r.submission_id)).size : 0
 
-    // Process analytics for each question
     const questionsWithAnalytics = survey.questions
       .sort((a: any, b: any) => a.order_index - b.order_index)
       .map((question: any) => {
         const questionResponses = responses?.filter((r: any) => r.question_id === question.id) || []
 
-        // Calculate response counts for each option
         const optionAnalytics = question.question_options.map((option: any) => {
           const optionResponses = questionResponses.filter((r: any) => r.option_id === option.id)
           const count = optionResponses.length
@@ -177,7 +166,6 @@ serve(async (req) => {
         }
       })
 
-    // Calculate overall survey stats
     const responseRate = survey.max_votes > 0 ? (totalSubmissions / survey.max_votes) * 100 : 0
     const isExpired = new Date(survey.expires_at) <= new Date()
 
@@ -202,9 +190,9 @@ serve(async (req) => {
           questions: questionsWithAnalytics,
           stats: {
             total_responses: totalSubmissions,
-            unique_responders: totalSubmissions,
-            completion_rate: totalSubmissions > 0 ? 100 : 0,
-            avg_time_per_response: null // Could be calculated if we track timestamps
+            response_rate: Math.round(responseRate * 100) / 100,
+            is_expired: isExpired,
+            completion_percentage: Math.round(responseRate * 100) / 100
           }
         }
       }),
@@ -217,7 +205,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error fetching survey analytics:', error)
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ 
+        success: false,
+        error: 'Internal server error' 
+      }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

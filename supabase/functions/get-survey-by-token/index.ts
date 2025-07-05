@@ -27,7 +27,6 @@ serve(async (req) => {
     // Try to get survey from Redis cache first
     const cachedSurvey = await getCachedSurveyByToken(token)
     if (cachedSurvey) {
-      console.log('Cache hit for survey token:', token)
       return new Response(
         JSON.stringify({
           success: true,
@@ -43,8 +42,6 @@ serve(async (req) => {
         }
       )
     }
-
-    console.log('Cache miss for survey token:', token)
 
     // Create Supabase client (no auth needed for public surveys)
     const supabase = createClient(
@@ -79,15 +76,11 @@ serve(async (req) => {
       .eq('public_token', token)
       .single()
 
-    console.log('Survey query result:', { survey, error, token })
-
     if (error || !survey) {
-      console.log('Survey not found:', { error: error?.message, token })
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: 'Survey not found',
-          debug: { token, error: error?.message }
+          error: 'Survey not found'
         }),
         { 
           status: 404, 
@@ -101,12 +94,10 @@ serve(async (req) => {
     const isInactive = survey.is_active === false // Only block if explicitly set to false
     
     if (isExpired) {
-      console.log('Survey expired:', { token, expires_at: survey.expires_at })
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: 'Survey has expired',
-          debug: { token, expires_at: survey.expires_at, now: new Date().toISOString() }
+          error: 'Survey has expired'
         }),
         { 
           status: 410, 
@@ -116,12 +107,10 @@ serve(async (req) => {
     }
 
     if (isInactive) {
-      console.log('Survey inactive:', { token, is_active: survey.is_active })
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: 'Survey is inactive',
-          debug: { token, is_active: survey.is_active }
+          error: 'Survey is inactive'
         }),
         { 
           status: 410, 
@@ -137,12 +126,8 @@ serve(async (req) => {
       .eq('survey_id', survey.id)
 
     let totalVotes = 0
-    if (countError) {
-      console.error('Error counting submissions:', countError)
-      // Continue with 0 votes if count fails
-    } else {
-      totalVotes = submissionData ? 
-        new Set(submissionData.map((r: any) => r.submission_id)).size : 0
+    if (!countError && submissionData) {
+      totalVotes = new Set(submissionData.map((r: any) => r.submission_id)).size
     }
 
     // Sort questions by order_index
@@ -163,13 +148,7 @@ serve(async (req) => {
 
     // Cache the survey data in Redis for 5 minutes (300 seconds)
     // Use shorter TTL for active surveys to ensure real-time vote counts
-    const cacheResult = await setCachedSurveyByToken(token, surveyWithVotes, 300)
-    
-    if (cacheResult.success) {
-      console.log('Survey cached successfully for token:', token)
-    } else {
-      console.warn('Failed to cache survey:', cacheResult.redis_error)
-    }
+    await setCachedSurveyByToken(token, surveyWithVotes, 300)
 
     return new Response(
       JSON.stringify({

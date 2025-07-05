@@ -23,10 +23,7 @@
     "deploy:staging": "vercel",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky install",
-    "test:load-simple": "k6 run tests/load/survey-simple.js",
-    "test:load-dev": "k6 run --env BASE_URL=http://localhost:3000 tests/load/survey-simple.js",
-    "setup:load-testing": "chmod +x scripts/setup-load-testing.sh && ./scripts/setup-load-testing.sh"
+    "prepare": "husky install"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",

@@ -14,13 +14,11 @@ interface CreateSurveyRequest {
 }
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Get authorization header
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(
@@ -32,7 +30,6 @@ serve(async (req) => {
       )
     }
 
-    // Create Supabase client with service role key for server operations
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -45,7 +42,6 @@ serve(async (req) => {
       }
     )
 
-    // Get current user using the JWT token
     const token = authHeader.replace('Bearer ', '')
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     
@@ -59,7 +55,6 @@ serve(async (req) => {
       )
     }
 
-    // Parse request body
     const { title, description, questions }: CreateSurveyRequest = await req.json()
 
     if (!title || !questions || questions.length === 0) {
@@ -82,7 +77,6 @@ serve(async (req) => {
       )
     }
 
-    // Get admin user (must exist from login trigger)
     const { data: adminUser, error: adminError } = await supabase
       .from('admin_users')
       .select('id')
@@ -103,15 +97,10 @@ serve(async (req) => {
     }
 
     const adminId = adminUser.id
-
-    // Generate public token
     const publicToken = crypto.randomUUID()
-    
-    // Calculate expiration date (3 days from now)
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + 3)
 
-    // Create survey
     const { data: survey, error: surveyError } = await supabase
       .from('surveys')
       .insert({
@@ -136,11 +125,9 @@ serve(async (req) => {
       )
     }
 
-    // Create questions and options
     for (let i = 0; i < questions.length; i++) {
       const question = questions[i]
       
-      // Create question
       const { data: questionData, error: questionError } = await supabase
         .from('questions')
         .insert({
@@ -163,7 +150,6 @@ serve(async (req) => {
         )
       }
 
-      // Create options
       for (const optionText of question.options) {
         const { error: optionError } = await supabase
           .from('question_options')
@@ -184,7 +170,6 @@ serve(async (req) => {
       }
     }
 
-    // Return created survey
     return new Response(
       JSON.stringify({
         success: true,
@@ -200,13 +185,12 @@ serve(async (req) => {
         }
       }),
       { 
-        status: 201,
+        status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
 
   } catch (error) {
-    console.error('Error creating survey:', error)
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { 

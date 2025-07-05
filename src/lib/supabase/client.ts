@@ -13,11 +13,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: true,
   },
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-    },
-  },
   db: {
     schema: 'public',
   },
@@ -72,39 +67,6 @@ export const getCurrentSession = async () => {
     throw error
   }
   return session
-}
-
-// Real-time subscription helpers
-export const subscribeToSurveyUpdates = (surveyId: string, callback: (payload: any) => void) => {
-  return supabase
-    .channel(`survey-${surveyId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'surveys',
-        filter: `id=eq.${surveyId}`,
-      },
-      callback
-    )
-    .subscribe()
-}
-
-export const subscribeToResponseUpdates = (surveyId: string, callback: (payload: any) => void) => {
-  return supabase
-    .channel(`responses-${surveyId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'responses',
-        filter: `survey_id=eq.${surveyId}`,
-      },
-      callback
-    )
-    .subscribe()
 }
 
 // Error handling helper

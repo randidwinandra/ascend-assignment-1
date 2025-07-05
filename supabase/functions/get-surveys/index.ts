@@ -3,13 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0"
 import { corsHeaders } from "../_shared/cors.ts"
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Get authorization header
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(
@@ -21,7 +19,6 @@ serve(async (req) => {
       )
     }
 
-    // Create Supabase client with service role key for server operations
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -34,7 +31,6 @@ serve(async (req) => {
       }
     )
 
-    // Get current user using the JWT token
     const token = authHeader.replace('Bearer ', '')
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     
@@ -48,7 +44,6 @@ serve(async (req) => {
       )
     }
 
-    // Get admin user
     const { data: adminUser, error: adminError } = await supabase
       .from('admin_users')
       .select('id')
@@ -65,7 +60,6 @@ serve(async (req) => {
       )
     }
 
-    // Get surveys with questions count
     const { data: surveys, error: surveysError } = await supabase
       .from('surveys')
       .select(`
@@ -95,7 +89,6 @@ serve(async (req) => {
       )
     }
 
-    // Get response counts for all surveys
     const surveyIds = surveys?.map(s => s.id) || []
     let responseCounts: { [key: string]: number } = {}
 
@@ -106,7 +99,6 @@ serve(async (req) => {
         .in('survey_id', surveyIds)
 
       if (!responseError && responseData) {
-        // Count distinct submission_ids for each survey
         const responsesBySurvey = responseData.reduce((acc, response) => {
           if (!acc[response.survey_id]) {
             acc[response.survey_id] = new Set()
@@ -115,7 +107,6 @@ serve(async (req) => {
           return acc
         }, {} as { [key: string]: Set<string> })
 
-        // Convert sets to counts
         responseCounts = Object.keys(responsesBySurvey).reduce((acc, surveyId) => {
           acc[surveyId] = responsesBySurvey[surveyId].size
           return acc
@@ -123,7 +114,6 @@ serve(async (req) => {
       }
     }
 
-    // Transform data to include question count and actual response count
     const surveysWithStats = surveys?.map(survey => ({
       id: survey.id,
       title: survey.title,

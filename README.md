@@ -10,7 +10,7 @@
 │                 │    │                 │    │                 │
 │ - Admin Panel   │    │ - PostgreSQL    │    │ - Rate Limiting │
 │ - Survey Form   │    │ - Edge Functions│    │ - Session Cache │
-│ - Dashboard     │    │ - Realtime      │    │ - Response Cache│
+│ - Dashboard     │    │ - Analytics     │    │ - Response Cache│
 │                 │    │                 │    │                 │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
@@ -29,9 +29,9 @@
 ### Key Architectural Decisions
 
 1. **React + Supabase + Redis Stack**
-   - React for responsive UI with real-time updates
+   - React for responsive UI with analytics dashboard
    - Supabase for managed PostgreSQL + Edge Functions
-   - Redis for caching and rate limiting
+  │ - Redis for caching and rate limiting
 
 2. **Google OAuth Integration**
    - Secure admin authentication
@@ -42,9 +42,9 @@
    - IP-based duplicate prevention
    - Survey expiration (3 days)
 
-4. **Real-time Dashboard**
-   - Supabase real-time subscriptions
-   - Live vote counting and analytics
+4. **Analytics Dashboard**
+   - Supabase database queries for analytics
+   - Vote counting and response analytics
 
 ## Quick Start (< 5 minutes)
 
@@ -91,7 +91,7 @@
 - **P95 Page Load:** ≤ 2s (Singapore POP)
 - **P99 Edge Function:** ≤ 750ms
 - **Survey Response Time:** ≤ 500ms
-- **Dashboard Update:** Real-time (< 100ms)
+- **Dashboard Analytics:** ≤ 1s query time
 
 ### Measurement Methods
 1. **Core Web Vitals**
@@ -166,7 +166,7 @@ For a survey application receiving **100,000 survey views/month**:
 ### Backend
 - **Supabase PostgreSQL** for data storage
 - **Supabase Edge Functions** (Deno) for API logic
-- **Supabase Realtime** for live updates
+- **Supabase Analytics** for dashboard queries
 - **Upstash Redis** for caching and rate limiting
 
 ### Authentication

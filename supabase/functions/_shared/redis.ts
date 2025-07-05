@@ -199,37 +199,27 @@ export const redisHealthCheck = async () => {
     return {
       healthy: true,
       latency: duration,
+      timestamp: new Date().toISOString(),
     }
   } catch (error) {
     console.error('Redis health check failed:', error)
     return {
       healthy: false,
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
     }
   }
 }
 
 // Helper function to get client IP from request
 export const getClientIP = (req: Request): string => {
-  // Try various headers in order of preference
-  const headers = [
-    'cf-connecting-ip',     // Cloudflare
-    'x-forwarded-for',      // Most common
-    'x-real-ip',            // Nginx
-    'x-client-ip',          // Apache
-    'x-forwarded',          // General
-    'forwarded-for',        // General
-    'forwarded',            // RFC 7239
-  ]
+  const xForwardedFor = req.headers.get('X-Forwarded-For')
+  const xRealIp = req.headers.get('X-Real-IP')
+  const cfConnectingIp = req.headers.get('CF-Connecting-IP')
   
-  for (const header of headers) {
-    const value = req.headers.get(header)
-    if (value) {
-      // x-forwarded-for can contain multiple IPs, use the first one
-      return value.split(',')[0].trim()
-    }
-  }
+  if (cfConnectingIp) return cfConnectingIp
+  if (xRealIp) return xRealIp
+  if (xForwardedFor) return xForwardedFor.split(',')[0].trim()
   
-  // Fallback to a default IP if none found
-  return 'unknown'
+  return '127.0.0.1'
 } 
